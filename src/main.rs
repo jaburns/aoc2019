@@ -1,18 +1,20 @@
 mod day1;
 mod day2;
 mod day3;
+mod day4;
 
 fn run_from_arg(arg: i32) {
     match arg {
-        1 => day1::day1(),
-        2 => day2::day2(),
-        3 => day3::day3(),
+        1 => day1::main(),
+        2 => day2::main(),
+        3 => day3::main(),
+        4 => day4::main(),
         _ => {}
     }
 }
 
 fn run_default() {
-    day3::day3()
+    day4::main()
 }
 
 fn main() {

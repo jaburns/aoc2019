@@ -2,37 +2,36 @@ const IMI_HALT: usize = 99;
 const IMI_ADD:  usize =  1;
 const IMI_MUL:  usize =  2;
 
-fn execute_tape(tape: &Vec<usize>, noun: usize, verb: usize) -> usize {
-    let mut p = Vec::from(tape.as_slice());
+fn execute_tape(tape: &[usize], noun: usize, verb: usize) -> usize {
+    let mut p = Vec::from(tape);
     let mut i = 0usize;
 
     p[1] = noun;
     p[2] = verb;
 
     loop {
-        if p[i] == IMI_HALT { break }
+        match p[i] {
+            IMI_ADD => { 
+                let addr_out = p[i+3];
+                p[addr_out] = p[p[i+1]] + p[p[i+2]]
+            },
 
-        if p[i] == IMI_ADD { 
-            let val_ina = p[p[i+1]];
-            let val_inb = p[p[i+2]];
-            let addr_out = p[i+3];
-            p[addr_out] = val_ina + val_inb;
+            IMI_MUL => {
+                let addr_out = p[i+3];
+                p[addr_out] = p[p[i+1]] * p[p[i+2]];
+            }
+
+            IMI_HALT => break,
+
+            _ => panic!("ABORTED: Encountered unknown opcode {} at location {}", p[i], i)
         }
-
-        if p[i] == IMI_MUL {
-            let val_ina = p[p[i+1]];
-            let val_inb = p[p[i+2]];
-            let addr_out = p[i+3];
-            p[addr_out] = val_ina * val_inb;
-        }
-
         i += 4;
     }
 
     p[0]
 }
 
-fn search_for_result(tape: &Vec<usize>, result: usize) -> (usize, usize) {
+fn search_for_result(tape: &[usize], result: usize) -> (usize, usize) {
     let mut noun = 0usize;
     loop {
         for verb in 0..noun {
@@ -45,7 +44,7 @@ fn search_for_result(tape: &Vec<usize>, result: usize) -> (usize, usize) {
     }
 }
 
-pub fn day2() {
+pub fn main() {
     let tape: Vec<usize> = std::fs::read_to_string("data/day2.txt").unwrap()
         .split(",")
         .map(|x| x.trim().parse().unwrap())
