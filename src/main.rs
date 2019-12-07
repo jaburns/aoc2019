@@ -5,6 +5,7 @@ mod day4;
 mod day5;
 mod day6;
 mod day7;
+mod vm;
 
 fn run_from_arg(arg: i32) {
     match arg {

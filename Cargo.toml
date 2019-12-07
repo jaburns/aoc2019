@@ -5,3 +5,4 @@ authors = ["Jeremy Burns <j@jaburns.net>"]
 edition = "2018"
 
 [dependencies]
+permutohedron = "0.2.4"
