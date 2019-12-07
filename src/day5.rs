@@ -17,7 +17,7 @@ fn get_arg(tape: &[i32], ip: usize, arg: usize) -> i32 {
     if arg_digit % 10 != 0 { tape[ip+arg+1] } else { tape[tape[ip+arg+1] as usize] }
 }
 
-fn execute_tape(tape: &[i32], inputs: &[i32]) -> Vec<i32> {
+pub fn execute_tape(tape: &[i32], inputs: &[i32]) -> Vec<i32> {
     let mut p = Vec::from(tape);
     let mut i = 0usize;
     let mut input_ptr = 0usize;
