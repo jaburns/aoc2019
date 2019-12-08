@@ -6,7 +6,7 @@ const IMI_OUT:  i32 = 04;
 const IMI_JNZ:  i32 = 05;
 const IMI_JZ:   i32 = 06;
 const IMI_LESS: i32 = 07;
-const IMI_EQ:   i32 = 08;
+const IMI_CMP:  i32 = 08;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum RunResult {
@@ -106,7 +106,7 @@ impl IntCodeMachine {
                     self.ip += 4
                 },
 
-                IMI_EQ => {
+                IMI_CMP => {
                     let arg0 = self.get_arg(0);
                     let arg1 = self.get_arg(1);
                     let arg2 = self.tape[self.ip + 3];

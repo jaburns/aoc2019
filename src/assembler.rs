@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use crate::vm::IntCodeMachine;
 
 #[derive(PartialEq, Eq, Debug)]
 enum InArg {
@@ -20,7 +19,7 @@ enum Instruction {
     Jnz(InArg, InArg),
     Jz(InArg, InArg),
     Less(InArg, InArg, OutArg),
-    Equ(InArg, InArg, OutArg),
+    Cmp(InArg, InArg, OutArg),
     Dd(InArg),
 }
 
@@ -44,7 +43,7 @@ fn parse_instruction(text: &str) -> (i32, Instruction) {
         "jnz"  => (3, Instruction::Jnz(parse_in_arg(words[1]), parse_in_arg(words[2]))),
         "jz"   => (3, Instruction::Jz(parse_in_arg(words[1]), parse_in_arg(words[2]))),
         "less" => (4, Instruction::Less(parse_in_arg(words[1]), parse_in_arg(words[2]), OutArg(String::from(words[3])))),
-        "equ"  => (4, Instruction::Equ(parse_in_arg(words[1]), parse_in_arg(words[2]), OutArg(String::from(words[3])))),
+        "cmp"  => (4, Instruction::Cmp(parse_in_arg(words[1]), parse_in_arg(words[2]), OutArg(String::from(words[3])))),
         "dd"   => (1, Instruction::Dd(parse_in_arg(words[1]))),
         _ => panic!("Unexpected instruction")
     }
@@ -67,7 +66,7 @@ fn assemble_first_value(instruction: &Instruction) -> i32 {
         Instruction::Jnz(a, _)     => 5 + arg_is_immediate(a,0) + 1000,
         Instruction::Jz(a, _)      => 6 + arg_is_immediate(a,0) + 1000,
         Instruction::Less(a, b, _) => 7 + arg_is_immediate(a,0) + arg_is_immediate(b,1),
-        Instruction::Equ(a, b, _)  => 8 + arg_is_immediate(a,0) + arg_is_immediate(b,1),
+        Instruction::Cmp(a, b, _)  => 8 + arg_is_immediate(a,0) + arg_is_immediate(b,1),
         Instruction::Dd(_)         => 0,
     }
 }
@@ -94,24 +93,17 @@ fn assemble_instruction(labels: &HashMap<String,i32>, instruction: &Instruction)
         Instruction::Jnz(a, b)     => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b)],
         Instruction::Jz(a, b)      => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b)],
         Instruction::Less(a, b, o) => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b), assemble_outarg(labels,o)],
-        Instruction::Equ(a, b, o)  => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b), assemble_outarg(labels,o)],
+        Instruction::Cmp(a, b, o)  => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b), assemble_outarg(labels,o)],
         Instruction::Dd(a)         => vec![assemble_inarg(labels,a)],
     }
 }
 
-fn run_program(tape: &[i32]) {
-    let outputs = IntCodeMachine::run_all(tape, &[]);
-    for o in outputs {
-        println!("{}", o);
-    }
-}
-
-pub fn test_assembler() {
-    let source: Vec<String> = std::fs::read_to_string("intcode/fib.asm").unwrap()
+pub fn assemble(path: &str, debug: bool) -> Vec<i32> {
+    let source: Vec<String> = std::fs::read_to_string(path).unwrap()
         .replace(":", ":\n")
         .lines()
         .map(|x| String::from(x.trim()))
-        .filter(|x| x.len() > 0)
+        .filter(|x| x.len() > 0 && !x.starts_with(";"))
         .collect();
 
     let mut address_labels = HashMap::<String,i32>::new();
@@ -128,21 +120,22 @@ pub fn test_assembler() {
         }
     }
 
-    println!("");
+    if debug { println!("") };
 
     let mut output = Vec::<i32>::new();
 
     for ins in instructions {
         let addr = output.len();
         let asm = assemble_instruction(&address_labels, &ins);
-        println!("{} : {:?} : {:?}", addr, ins, asm);
-
+        if debug { println!("{} : {:?} : {:?}", addr, ins, asm) };
         output.extend(asm);
     }
     
-    println!("");
-    println!("{:?}", output);
-    println!("");
+    if debug {
+        println!("");
+        println!("{:?}", output);
+        println!("");
+    }
 
-    run_program(&output);
+    output
 }

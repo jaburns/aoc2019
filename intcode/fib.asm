@@ -4,7 +4,7 @@ loop:
     add 0, val1, val0
     add 0, tmp, val1
     add 1, counter, counter
-    equ counter, 25, tmp
+    cmp counter, 25, tmp
     jz tmp, loop
     halt
 
