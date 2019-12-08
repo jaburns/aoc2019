@@ -6,6 +6,7 @@ mod day5;
 mod day6;
 mod day7;
 mod vm;
+mod assembler;
 
 fn run_from_arg(arg: i32) {
     match arg {
@@ -21,7 +22,8 @@ fn run_from_arg(arg: i32) {
 }
 
 fn run_default() {
-    day7::main()
+    assembler::test_assembler();
+    //day7::main()
 }
 
 fn main() {
