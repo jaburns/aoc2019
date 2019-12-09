@@ -1,7 +1,7 @@
 use crate::intcode::vm::{IntCodeMachine,RunResult};
 use permutohedron::Heap;
 
-fn run_forward_amplifier_circuit(tape: &Vec<i32>, phase_seq: &[i32; 5]) -> i32 {
+fn run_forward_amplifier_circuit(tape: &Vec<i64>, phase_seq: &[i64; 5]) -> i64 {
     let a = IntCodeMachine::run_all(&tape, &[phase_seq[0], 0]).pop().unwrap();
     let b = IntCodeMachine::run_all(&tape, &[phase_seq[1], a]).pop().unwrap();
     let c = IntCodeMachine::run_all(&tape, &[phase_seq[2], b]).pop().unwrap();
@@ -10,8 +10,8 @@ fn run_forward_amplifier_circuit(tape: &Vec<i32>, phase_seq: &[i32; 5]) -> i32 {
     e
 }
 
-fn run_feedback_amplifier_circuit(tape: &Vec<i32>, phase_seq: &[i32; 5]) -> i32 {
-    let mut signal = 0i32;
+fn run_feedback_amplifier_circuit(tape: &Vec<i64>, phase_seq: &[i64; 5]) -> i64 {
+    let mut signal = 0i64;
     let mut machine_index = 0usize;
     let mut machines = [
         IntCodeMachine::new(tape),
@@ -46,12 +46,12 @@ fn run_feedback_amplifier_circuit(tape: &Vec<i32>, phase_seq: &[i32; 5]) -> i32 
     signal
 }
 
-fn find_best_thruster_signal(tape: &Vec<i32>, phases: &[i32;5], run: fn(&Vec<i32>, &[i32;5]) -> i32) -> i32 {
-    let mut mut_phases = [0i32; 5];
+fn find_best_thruster_signal(tape: &Vec<i64>, phases: &[i64;5], run: fn(&Vec<i64>, &[i64;5]) -> i64) -> i64 {
+    let mut mut_phases = [0i64; 5];
     mut_phases.copy_from_slice(phases);
 
     let mut heap = Heap::new(&mut mut_phases);
-    let mut best_signal = 0i32;
+    let mut best_signal = 0i64;
     while let Some(perm) = heap.next_permutation() {
         let new_signal = run(tape, perm);
         if new_signal > best_signal { best_signal = new_signal };
@@ -60,7 +60,7 @@ fn find_best_thruster_signal(tape: &Vec<i32>, phases: &[i32;5], run: fn(&Vec<i32
 }
 
 pub fn main() {
-    let tape: Vec<i32> = std::fs::read_to_string("data/day7.txt").unwrap()
+    let tape: Vec<i64> = std::fs::read_to_string("data/day7.txt").unwrap()
         .split(",")
         .map(|x| x.trim().parse().unwrap())
         .collect();

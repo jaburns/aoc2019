@@ -1,7 +1,7 @@
 use crate::intcode::vm::IntCodeMachine;
 
 pub fn main() {
-    let tape: Vec<i32> = std::fs::read_to_string("data/day5.txt").unwrap()
+    let tape: Vec<i64> = std::fs::read_to_string("data/day5.txt").unwrap()
         .split(",")
         .map(|x| x.trim().parse().unwrap())
         .collect();

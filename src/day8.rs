@@ -2,10 +2,10 @@ use crate::intcode::assembler::assemble;
 use crate::intcode::vm::IntCodeMachine;
 
 pub fn main() {
-    let mut digits: Vec<i32> = std::fs::read_to_string("data/day8.txt").unwrap()
+    let mut digits: Vec<i64> = std::fs::read_to_string("data/day8.txt").unwrap()
         .trim()
         .chars()
-        .map(|x| x.to_digit(10).unwrap() as i32)
+        .map(|x| x.to_digit(10).unwrap() as i64)
         .collect();
 
     digits.push(99);

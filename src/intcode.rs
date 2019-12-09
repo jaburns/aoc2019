@@ -1,13 +1,14 @@
 pub mod defs {
-    pub const I_HALT: i32 = 99;
-    pub const I_ADD:  i32 = 01;
-    pub const I_MUL:  i32 = 02;
-    pub const I_IN:   i32 = 03;
-    pub const I_OUT:  i32 = 04;
-    pub const I_JNZ:  i32 = 05;
-    pub const I_JZ:   i32 = 06;
-    pub const I_LESS: i32 = 07;
-    pub const I_CMP:  i32 = 08;
+    pub const I_HALT: i64 = 99;
+    pub const I_ADD:  i64 = 01;
+    pub const I_MUL:  i64 = 02;
+    pub const I_IN:   i64 = 03;
+    pub const I_OUT:  i64 = 04;
+    pub const I_JNZ:  i64 = 05;
+    pub const I_JZ:   i64 = 06;
+    pub const I_LESS: i64 = 07;
+    pub const I_CMP:  i64 = 08;
+    pub const I_RBA:  i64 = 09;
 }
 
 pub mod vm {
@@ -16,29 +17,31 @@ pub mod vm {
     #[derive(PartialEq, Eq, Debug, Clone, Copy)]
     pub enum RunResult {
         RequiresInput,
-        ProvidingOutput(i32),
+        ProvidingOutput(i64),
         Halted,
     }
 
     pub struct IntCodeMachine {
-        tape: Vec<i32>,
+        tape: Vec<i64>,
         ip: usize,
+        relative_base: i64,
         last_result: Option<RunResult>,
         input_address: usize,
     }
 
     impl IntCodeMachine {
-        pub fn new(init_tape: &[i32]) -> IntCodeMachine {
+        pub fn new(init_tape: &[i64]) -> IntCodeMachine {
             IntCodeMachine {
                 tape: Vec::from(init_tape),
                 ip: 0,
+                relative_base: 0,
                 last_result: None,
                 input_address: 0,
             }
         }
 
-        pub fn provide_input(&mut self, input: i32) {
-            self.tape[self.input_address] = input;
+        pub fn provide_input(&mut self, input: i64) {
+            self.write_to_tape(self.input_address, input);
         }
 
         pub fn run(&mut self) -> RunResult {
@@ -56,21 +59,21 @@ pub mod vm {
                     I_ADD => { 
                         let arg0 = self.get_arg(0);
                         let arg1 = self.get_arg(1);
-                        let arg2 = self.tape[self.ip + 3];
-                        self.tape[arg2 as usize] = arg0 + arg1;
+                        let arg2 = self.get_out_arg(2);
+                        self.write_to_tape(arg2 as usize, arg0 + arg1);
                         self.ip += 4
                     },
 
                     I_MUL => {
                         let arg0 = self.get_arg(0);
                         let arg1 = self.get_arg(1);
-                        let arg2 = self.tape[self.ip + 3];
-                        self.tape[arg2 as usize] = arg0 * arg1;
+                        let arg2 = self.get_out_arg(2);
+                        self.write_to_tape(arg2 as usize, arg0 * arg1);
                         self.ip += 4
                     },
 
                     I_IN => {
-                        self.input_address = self.tape[self.ip + 1] as usize;
+                        self.input_address = self.get_out_arg(0);
                         self.last_result = Some(RunResult::RequiresInput);
                         self.ip += 2;
                         break
@@ -106,18 +109,24 @@ pub mod vm {
                     I_LESS => {
                         let arg0 = self.get_arg(0);
                         let arg1 = self.get_arg(1);
-                        let arg2 = self.tape[self.ip + 3];
-                        self.tape[arg2 as usize] = if arg0 < arg1 { 1 } else { 0 };
+                        let arg2 = self.get_out_arg(2);
+                        self.write_to_tape(arg2 as usize, if arg0 < arg1 { 1 } else { 0 });
                         self.ip += 4
                     },
 
                     I_CMP => {
                         let arg0 = self.get_arg(0);
                         let arg1 = self.get_arg(1);
-                        let arg2 = self.tape[self.ip + 3];
-                        self.tape[arg2 as usize] = if arg0 == arg1 { 1 } else { 0 };
+                        let arg2 = self.get_out_arg(2);
+                        self.write_to_tape(arg2 as usize, if arg0 == arg1 { 1 } else { 0 });
                         self.ip += 4
                     },
+
+                    I_RBA => {
+                        let arg0 = self.get_arg(0);
+                        self.relative_base += arg0;
+                        self.ip += 2
+                    }
 
                     _ => panic!("ABORTED: Encountered unknown opcode {} at location {}", self.tape[self.ip], self.ip)
                 }
@@ -126,19 +135,55 @@ pub mod vm {
             self.last_result.unwrap()
         }
 
-        fn get_arg(&self, arg: usize) -> i32 {
+        fn write_to_tape(&mut self, address: usize, value: i64) {
+            while self.tape.len() < address + 1 {
+                self.tape.push(0);
+            }
+            self.tape[address] = value;
+        }
+
+        fn read_from_tape(&self, address: usize) -> i64 {
+            if address < self.tape.len() {
+                self.tape[address]
+            } else {
+                0
+            }
+        }
+
+        fn get_arg_digit(&self, arg: usize) -> i64 {
             let mut arg_digit = self.tape[self.ip] / 100;
             for _ in 0..arg {
                 arg_digit /= 10;
             }
-
-            if arg_digit % 10 != 0 { self.tape[self.ip+arg+1] } else { self.tape[self.tape[self.ip+arg+1] as usize] }
+            arg_digit % 10
         }
 
-        pub fn run_all(tape: &[i32], inputs: &[i32]) -> Vec<i32> {
+        fn get_arg(&self, arg: usize) -> i64 {
+            let arg_digit = self.get_arg_digit(arg);
+
+            if arg_digit == 1 {
+                self.read_from_tape(self.ip+arg+1)
+            } else if arg_digit == 2 {
+                self.read_from_tape((self.tape[self.ip+arg+1] + self.relative_base) as usize)
+            } else {
+                self.read_from_tape(self.tape[self.ip+arg+1] as usize)
+            }
+        }
+
+        fn get_out_arg(&self, arg: usize) -> usize {
+            let arg_digit = self.get_arg_digit(arg);
+
+            if arg_digit == 2 {
+                (self.read_from_tape(self.ip+arg+1) + self.relative_base) as usize
+            } else {
+                self.read_from_tape(self.ip+arg+1) as usize
+            }
+        }
+
+        pub fn run_all(tape: &[i64], inputs: &[i64]) -> Vec<i64> {
             let mut vm = IntCodeMachine::new(tape);
             let mut input_ptr = 0usize;
-            let mut outputs = Vec::<i32>::new();
+            let mut outputs = Vec::<i64>::new();
 
             loop {
                 match vm.run() {
@@ -163,20 +208,20 @@ pub mod assembler {
     #[derive(Debug)]
     struct InstructionDef {
         pub name: &'static str,
-        pub opcode: i32,
-        pub inargs: u32,
-        pub outargs: u32,
+        pub opcode: i64,
+        pub inargs: u64,
+        pub outargs: u64,
     }
 
     #[derive(Debug)]
     struct ParsedInstruction {
-        pub size: u32,
+        pub size: u64,
         pub def: &'static InstructionDef,
         pub words: Vec<String>,
-        pub internal_labels: Vec<(String,u32)>,
+        pub internal_labels: Vec<(String,u64)>,
     }
 
-    const INSTRUCTIONS: [InstructionDef; 11] = [
+    const INSTRUCTIONS: [InstructionDef; 12] = [
         InstructionDef { name: "halt", opcode: I_HALT, inargs: 0, outargs: 0 },
         InstructionDef { name: "add",  opcode: I_ADD,  inargs: 2, outargs: 1 },
         InstructionDef { name: "mul",  opcode: I_MUL,  inargs: 2, outargs: 1 },
@@ -186,11 +231,12 @@ pub mod assembler {
         InstructionDef { name: "jz",   opcode: I_JZ,   inargs: 2, outargs: 0 },
         InstructionDef { name: "less", opcode: I_LESS, inargs: 2, outargs: 1 },
         InstructionDef { name: "cmp",  opcode: I_CMP,  inargs: 2, outargs: 1 },
+        InstructionDef { name: "rba",  opcode: I_RBA,  inargs: 1, outargs: 0 },
         InstructionDef { name: "dd",   opcode: -1,     inargs: 0, outargs: 0 },
         InstructionDef { name: "fill", opcode: -1,     inargs: 0, outargs: 0 },
     ];
 
-    fn parse_label(labels: &HashMap<String,i32>, arg: &str) -> (i32, bool) {
+    fn parse_label(labels: &HashMap<String,i64>, arg: &str) -> (i64, bool) {
         if arg.starts_with("$") {
             (0, false)
         } else if arg.starts_with("&") {
@@ -200,14 +246,14 @@ pub mod assembler {
         }
     }
 
-    fn immediate_flag_for_index(word_i: usize) -> i32 {
-        10i32.pow(1 + word_i as u32)
+    fn immediate_flag_for_index(word_i: usize) -> i64 {
+        10i64.pow(1 + word_i as u32)
     }
 
-    fn assemble_parsed_instruction(labels: &HashMap<String,i32>, parsed: &ParsedInstruction) -> Vec<i32> {
+    fn assemble_parsed_instruction(labels: &HashMap<String,i64>, parsed: &ParsedInstruction) -> Vec<i64> {
         if parsed.def.opcode < 0 {
             let arg = &parsed.words[1];
-            let arg_val = match arg.parse::<i32>() {
+            let arg_val = match arg.parse::<i64>() {
                 Ok(x) => x,
                 Err(_) => {
                     let (arg_val, _) = parse_label(labels, arg);
@@ -222,14 +268,14 @@ pub mod assembler {
             };
         }
 
-        let mut result = Vec::<i32>::new();
+        let mut result = Vec::<i64>::new();
         let mut word_i = 1usize;
-        let mut op_flags = 0i32;
+        let mut op_flags = 0i64;
 
         for _ in 0..parsed.def.inargs {
             let arg = &parsed.words[word_i];
 
-            result.push(match arg.parse::<i32>() {
+            result.push(match arg.parse::<i64>() {
                 Ok(x) => {
                     op_flags += immediate_flag_for_index(word_i);
                     x
@@ -265,21 +311,21 @@ pub mod assembler {
 
         let size = match words[0].as_str() {
             "dd"   => 1, 
-            "fill" => words[2].parse::<u32>().unwrap(),
+            "fill" => words[2].parse::<u64>().unwrap(),
             _      => 1 + ins.inargs + ins.outargs,
         };
 
-        let mut internal_labels = Vec::<(String,u32)>::new();
+        let mut internal_labels = Vec::<(String,u64)>::new();
         for i in 1..words.len() {
             if words[i].starts_with("$") {
-                internal_labels.push((String::from(&words[i][1..]), i as u32));
+                internal_labels.push((String::from(&words[i][1..]), i as u64));
             }
         }
 
         ParsedInstruction { size: size, def: ins, words: words, internal_labels: internal_labels }
     }
 
-    pub fn assemble(path: &str, debug: bool) -> Vec<i32> {
+    pub fn assemble(path: &str, debug: bool) -> Vec<i64> {
         let source: Vec<String> = std::fs::read_to_string(path).unwrap()
             .replace(":", ":\n")
             .lines()
@@ -287,18 +333,18 @@ pub mod assembler {
             .filter(|x| x.len() > 0 && !x.starts_with(";"))
             .collect();
 
-        let mut address_labels = HashMap::<String,i32>::new();
-        let mut cur_address = 0u32;
+        let mut address_labels = HashMap::<String,i64>::new();
+        let mut cur_address = 0u64;
         let mut instructions = Vec::<ParsedInstruction>::new();
 
         for line in source {
             if line.ends_with(":") {
-                address_labels.insert(String::from(line.replace(":", "")), cur_address as i32);
+                address_labels.insert(String::from(line.replace(":", "")), cur_address as i64);
             } else {
                 let parsed = parse_instruction_text(&line);
 
                 for label in &parsed.internal_labels {
-                    address_labels.insert(label.0.clone(), (cur_address + label.1) as i32);
+                    address_labels.insert(label.0.clone(), (cur_address + label.1) as i64);
                 }
 
                 cur_address += parsed.size;
@@ -306,7 +352,7 @@ pub mod assembler {
             }
         }
 
-        let mut output = Vec::<i32>::new();
+        let mut output = Vec::<i64>::new();
 
         for ins in instructions {
             let addr = output.len();
