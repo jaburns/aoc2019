@@ -6,8 +6,7 @@ mod day5;
 mod day6;
 mod day7;
 mod day8;
-mod vm;
-mod assembler;
+mod intcode;
 
 fn run_from_arg(arg: i32) {
     match arg {

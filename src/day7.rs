@@ -1,4 +1,4 @@
-use crate::vm::{IntCodeMachine,RunResult};
+use crate::intcode::vm::{IntCodeMachine,RunResult};
 use permutohedron::Heap;
 
 fn run_forward_amplifier_circuit(tape: &Vec<i32>, phase_seq: &[i32; 5]) -> i32 {

@@ -1,5 +1,5 @@
-use crate::assembler::assemble;
-use crate::vm::IntCodeMachine;
+use crate::intcode::assembler::assemble;
+use crate::intcode::vm::IntCodeMachine;
 
 pub fn main() {
     let mut digits: Vec<i32> = std::fs::read_to_string("data/day8.txt").unwrap()
