@@ -221,6 +221,13 @@ pub mod assembler {
         pub internal_labels: Vec<(String,u64)>,
     }
 
+    #[derive(PartialEq, Eq, Debug, Clone, Copy)]
+    enum AddressMode {
+        Pointer,
+        Immediate,
+        Relative
+    }
+
     const INSTRUCTIONS: [InstructionDef; 12] = [
         InstructionDef { name: "halt", opcode: I_HALT, inargs: 0, outargs: 0 },
         InstructionDef { name: "add",  opcode: I_ADD,  inargs: 2, outargs: 1 },
@@ -236,18 +243,24 @@ pub mod assembler {
         InstructionDef { name: "fill", opcode: -1,     inargs: 0, outargs: 0 },
     ];
 
-    fn parse_label(labels: &HashMap<String,i64>, arg: &str) -> (i64, bool) {
+    fn parse_label(labels: &HashMap<String,i64>, arg: &str) -> (i64, AddressMode) {
         if arg.starts_with("$") {
-            (0, false)
+            (0, AddressMode::Pointer)
         } else if arg.starts_with("&") {
-            (labels[&arg[1..]], true)
+            (labels[&arg[1..]], AddressMode::Immediate)
+        } else if arg.starts_with("^") {
+            (arg[1..].parse::<i64>().unwrap(), AddressMode::Relative)
         } else {
-            (labels[arg], false)
+            (labels[arg], AddressMode::Pointer)
         }
     }
 
-    fn immediate_flag_for_index(word_i: usize) -> i64 {
-        10i64.pow(1 + word_i as u32)
+    fn get_address_mode_flag(word_i: usize, mode: AddressMode) -> i64 {
+        match mode {
+            AddressMode::Pointer   => 0,
+            AddressMode::Immediate => 10i64.pow(1 + word_i as u32),
+            AddressMode::Relative  => 2 * 10i64.pow(1 + word_i as u32),
+        }
     }
 
     fn assemble_parsed_instruction(labels: &HashMap<String,i64>, parsed: &ParsedInstruction) -> Vec<i64> {
@@ -277,12 +290,12 @@ pub mod assembler {
 
             result.push(match arg.parse::<i64>() {
                 Ok(x) => {
-                    op_flags += immediate_flag_for_index(word_i);
+                    op_flags += get_address_mode_flag(word_i, AddressMode::Immediate);
                     x
                 },
                 Err(_) => {
-                    let (arg_val, imm) = parse_label(labels, arg);
-                    if imm { op_flags += immediate_flag_for_index(word_i) };
+                    let (arg_val, mode) = parse_label(labels, arg);
+                    op_flags += get_address_mode_flag(word_i, mode);
                     arg_val
                 }
             });
@@ -291,7 +304,10 @@ pub mod assembler {
         }
 
         for _ in 0..parsed.def.outargs {
-            result.push(parse_label(labels, &parsed.words[word_i]).0);
+            let (arg_val, mode) = parse_label(labels, &parsed.words[word_i]);
+            if mode == AddressMode::Immediate { panic!("Cannot have immediate-mode out arg"); }
+            op_flags += get_address_mode_flag(word_i, mode);
+            result.push(arg_val);
             word_i += 1
         }
 
