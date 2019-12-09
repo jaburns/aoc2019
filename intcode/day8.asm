@@ -1,37 +1,37 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Day 8 - Part One
+;; Day 8
 ;; 
 
 readLoop:
     ; Read a digit, and if we're at the end of the input break the read loop.
         in digit
         cmp digit, 99, compare
-        jnz compare, done
+        jnz compare, &done
 
     ; Increment the appropriate digit counter.
         cmp digit, 0, compare
-        jz compare, notZero
+        jz compare, &notZero
         add 1, curZeroCount, curZeroCount
-        jz 0, doneDigitCount
+        jz 0, &doneDigitCount
     notZero:
         cmp digit, 1, compare
-        jz compare, notOne
+        jz compare, &notOne
         add 1, curOneCount, curOneCount
-        jz 0, doneDigitCount
+        jz 0, &doneDigitCount
     notOne:
         add 1, curTwoCount, curTwoCount
     doneDigitCount:
 
     ; Increment the overall counter for the layer, and if we're not done with
-    ; this layer then keep reading digits.
+    ; this layer then keep reading digits.  150 = width(25) * height(6)
         add 1, curDigitCount, curDigitCount
         cmp curDigitCount, 150, compare
-        jz compare, readLoop
+        jz compare, &readLoop
 
     ; We're at the end of the current layer.
     ; If this layer's zero count is better than the best layer's, compute new product.
         less curZeroCount, bestZeroCount, compare
-        jz compare, thisLayerNotBetter
+        jz compare, &thisLayerNotBetter
         add 0, curLayer, bestLayer
         add 0, curZeroCount, bestZeroCount
         mul curOneCount, curTwoCount, bestProduct
@@ -43,7 +43,7 @@ readLoop:
         mul 0, curZeroCount, curZeroCount
         mul 0, curOneCount, curOneCount
         mul 0, curTwoCount, curTwoCount
-        jz 0, readLoop
+        jz 0, &readLoop
 
 done:
         out bestProduct
@@ -61,3 +61,5 @@ curTwoCount:   dd 0
 bestLayer:     dd 0
 bestZeroCount: dd 15000
 bestProduct:   dd 0
+
+imageBuffer:  zero 150

@@ -1,101 +1,107 @@
 use std::collections::HashMap;
 
-#[derive(PartialEq, Eq, Debug)]
-enum InArg {
-    Immediate(i32),
-    Address(String),
+#[derive(Debug)]
+struct InstructionDef {
+    pub name: &'static str,
+    pub opcode: i32,
+    pub inargs: u32,
+    pub outargs: u32,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-struct OutArg(String);
-
-#[derive(PartialEq, Eq, Debug)]
-enum Instruction {
-    Halt, 
-    Add(InArg, InArg, OutArg),
-    Mul(InArg, InArg, OutArg),
-    In(OutArg),
-    Out(InArg),
-    Jnz(InArg, InArg),
-    Jz(InArg, InArg),
-    Less(InArg, InArg, OutArg),
-    Cmp(InArg, InArg, OutArg),
-    Dd(InArg),
+#[derive(Debug)]
+struct ParsedInstruction {
+    pub size: u32,
+    pub def: &'static InstructionDef,
+    pub words: Vec<String>,
 }
 
-fn parse_in_arg(arg: &str) -> InArg {
-    match arg.parse::<i32>() {
-        Ok(x) => InArg::Immediate(x),
-        Err(_) => InArg::Address(String::from(arg)),
+const INSTRUCTIONS: [InstructionDef; 11] = [
+    InstructionDef { name: "halt", opcode: 99, inargs: 0, outargs: 0 },
+    InstructionDef { name: "add",  opcode:  1, inargs: 2, outargs: 1 },
+    InstructionDef { name: "mul",  opcode:  2, inargs: 2, outargs: 1 },
+    InstructionDef { name: "in",   opcode:  3, inargs: 0, outargs: 1 },
+    InstructionDef { name: "out",  opcode:  4, inargs: 1, outargs: 0 },
+    InstructionDef { name: "jnz",  opcode:  5, inargs: 2, outargs: 0 },
+    InstructionDef { name: "jz",   opcode:  6, inargs: 2, outargs: 0 },
+    InstructionDef { name: "less", opcode:  7, inargs: 2, outargs: 1 },
+    InstructionDef { name: "cmp",  opcode:  8, inargs: 2, outargs: 1 },
+    InstructionDef { name: "dd",   opcode: -1, inargs: 0, outargs: 0 },
+    InstructionDef { name: "zero", opcode: -1, inargs: 0, outargs: 0 },
+];
+
+fn parse_label(labels: &HashMap<String,i32>, arg: &str) -> (i32, bool) {
+    if arg.starts_with("&") {
+        (labels[&arg[1..]], true)
+    } else {
+        (labels[arg], false)
     }
 }
 
-fn parse_instruction(text: &str) -> (i32, Instruction) {
-    let no_commas = text.replace(",", " ");
-    let words: Vec<&str> = no_commas.split_whitespace().collect();
-
-    match words[0] {
-        "halt" => (1, Instruction::Halt),
-        "add"  => (4, Instruction::Add(parse_in_arg(words[1]), parse_in_arg(words[2]), OutArg(String::from(words[3])))),
-        "mul"  => (4, Instruction::Mul(parse_in_arg(words[1]), parse_in_arg(words[2]), OutArg(String::from(words[3])))),
-        "in"   => (2, Instruction::In(OutArg(String::from(words[1])))),
-        "out"  => (2, Instruction::Out(parse_in_arg(words[1]))),
-        "jnz"  => (3, Instruction::Jnz(parse_in_arg(words[1]), parse_in_arg(words[2]))),
-        "jz"   => (3, Instruction::Jz(parse_in_arg(words[1]), parse_in_arg(words[2]))),
-        "less" => (4, Instruction::Less(parse_in_arg(words[1]), parse_in_arg(words[2]), OutArg(String::from(words[3])))),
-        "cmp"  => (4, Instruction::Cmp(parse_in_arg(words[1]), parse_in_arg(words[2]), OutArg(String::from(words[3])))),
-        "dd"   => (1, Instruction::Dd(parse_in_arg(words[1]))),
-        _ => panic!("Unexpected instruction")
-    }
+fn immediate_flag_for_index(word_i: usize) -> i32 {
+    10i32.pow(1 + word_i as u32)
 }
 
-fn arg_is_immediate(arg: &InArg, place: u32) -> i32 {
-    match arg {
-        InArg::Immediate(_) => 10i32.pow(place + 2),
-        InArg::Address(_) => 0,
+fn assemble_parsed_instruction(labels: &HashMap<String,i32>, parsed: &ParsedInstruction) -> Vec<i32> {
+    if parsed.def.opcode < 0 {
+        return match parsed.def.name {
+            "dd"   => vec![parsed.words[1].parse::<i32>().unwrap()],
+            "zero" => vec![0; parsed.size as usize],
+            _ => panic!(),
+        };
     }
+
+    let mut result = Vec::<i32>::new();
+    let mut word_i = 1usize;
+    let mut op_flags = 0i32;
+
+    for _ in 0..parsed.def.inargs {
+        let arg = &parsed.words[word_i];
+
+        result.push(match arg.parse::<i32>() {
+            Ok(x) => {
+                op_flags += immediate_flag_for_index(word_i);
+                x
+            },
+            Err(_) => {
+                let (arg_val, imm) = parse_label(labels, arg);
+                if imm { op_flags += immediate_flag_for_index(word_i) };
+                arg_val
+            }
+        });
+
+        word_i += 1
+    }
+
+    for _ in 0..parsed.def.outargs {
+        let (arg_val, imm) = parse_label(labels, &parsed.words[word_i]);
+        result.push(arg_val);
+        if imm { op_flags += immediate_flag_for_index(word_i) };
+        word_i += 1
+    }
+
+    result.insert(0, op_flags + parsed.def.opcode);
+
+    result
 }
 
-fn assemble_first_value(instruction: &Instruction) -> i32 {
-    match instruction {
-        Instruction::Halt          => 99,
-        Instruction::Add(a, b, _)  => 1 + arg_is_immediate(a,0) + arg_is_immediate(b,1),
-        Instruction::Mul(a, b, _)  => 2 + arg_is_immediate(a,0) + arg_is_immediate(b,1),
-        Instruction::In(_)         => 3,
-        Instruction::Out(a)        => 4 + arg_is_immediate(a,0),
-        Instruction::Jnz(a, _)     => 5 + arg_is_immediate(a,0) + 1000,
-        Instruction::Jz(a, _)      => 6 + arg_is_immediate(a,0) + 1000,
-        Instruction::Less(a, b, _) => 7 + arg_is_immediate(a,0) + arg_is_immediate(b,1),
-        Instruction::Cmp(a, b, _)  => 8 + arg_is_immediate(a,0) + arg_is_immediate(b,1),
-        Instruction::Dd(_)         => 0,
-    }
-}
+fn parse_instruction_text(text: &str) -> ParsedInstruction {
+    let no_commas = String::from(text).replace(",", " ");
+    let words: Vec<String> = no_commas.split_whitespace().map(|x| String::from(x)).collect();
 
-fn assemble_inarg(labels: &HashMap<String,i32>, arg: &InArg) -> i32 {
-    match arg {
-        InArg::Immediate(x) => *x,
-        InArg::Address(x) => labels[x],
-    }
-}
+    let ins: &InstructionDef = INSTRUCTIONS
+        .iter()
+        .find(|x| x.name == words[0])
+        .unwrap();
 
-fn assemble_outarg(labels: &HashMap<String,i32>, arg: &OutArg) -> i32 {
-    let OutArg(x) = arg;
-    labels[x]
-}
-
-fn assemble_instruction(labels: &HashMap<String,i32>, instruction: &Instruction) -> Vec<i32> {
-    match instruction {
-        Instruction::Halt          => vec![assemble_first_value(instruction)],
-        Instruction::Add(a, b, o)  => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b), assemble_outarg(labels,o)],
-        Instruction::Mul(a, b, o)  => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b), assemble_outarg(labels,o)],
-        Instruction::In(o)         => vec![assemble_first_value(instruction), assemble_outarg(labels,o)],
-        Instruction::Out(a)        => vec![assemble_first_value(instruction), assemble_inarg(labels,a)],
-        Instruction::Jnz(a, b)     => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b)],
-        Instruction::Jz(a, b)      => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b)],
-        Instruction::Less(a, b, o) => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b), assemble_outarg(labels,o)],
-        Instruction::Cmp(a, b, o)  => vec![assemble_first_value(instruction), assemble_inarg(labels,a), assemble_inarg(labels,b), assemble_outarg(labels,o)],
-        Instruction::Dd(a)         => vec![assemble_inarg(labels,a)],
+    if ins.opcode < 0 {
+        return match words[0].as_str() {
+            "dd"   => ParsedInstruction { size: 1, def: ins, words: words },
+            "zero" => ParsedInstruction { size: words[1].parse::<u32>().unwrap(), def: ins, words: words },
+            _ => panic!(),
+        };
     }
+
+    ParsedInstruction { size: 1 + ins.inargs + ins.outargs, def: ins, words: words }
 }
 
 pub fn assemble(path: &str, debug: bool) -> Vec<i32> {
@@ -107,27 +113,25 @@ pub fn assemble(path: &str, debug: bool) -> Vec<i32> {
         .collect();
 
     let mut address_labels = HashMap::<String,i32>::new();
-    let mut cur_address = 0i32;
-    let mut instructions = Vec::<Instruction>::new();
+    let mut cur_address = 0u32;
+    let mut instructions = Vec::<ParsedInstruction>::new();
 
     for line in source {
         if line.ends_with(":") {
-            address_labels.insert(String::from(line.replace(":", "")), cur_address);
+            address_labels.insert(String::from(line.replace(":", "")), cur_address as i32);
         } else {
-            let (size, instruction) = parse_instruction(&line);
-            instructions.push(instruction);
-            cur_address += size;
+            let parsed = parse_instruction_text(&line);
+            cur_address += parsed.size;
+            instructions.push(parsed);
         }
     }
-
-    if debug { println!("") };
 
     let mut output = Vec::<i32>::new();
 
     for ins in instructions {
         let addr = output.len();
-        let asm = assemble_instruction(&address_labels, &ins);
-        if debug { println!("{} : {:?} : {:?}", addr, ins, asm) };
+        let asm = assemble_parsed_instruction(&address_labels, &ins);
+        if debug { println!("{} : {:?} : {:?}", addr, ins.words, asm) };
         output.extend(asm);
     }
     
