@@ -55,10 +55,10 @@ readLoop:
         jz 0, &readLoop
 
 done:
-        ; Output the answer to part 1
+    ; Output the answer to part 1
         out bestProduct
 
-        ; Loop over the image buffer and output the 150 pixel values for part 2
+    ; Loop over the image buffer and output the 150 pixel values for part 2
         add 0, 0, curDigitCount
     outPart2Loop:
         add curDigitCount, &imageBuffer, pxOut+1
