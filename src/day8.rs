@@ -10,7 +10,7 @@ pub fn main() {
 
     digits.push(99);
 
-    let tape = assemble("intcode/day8.asm", false);
+    let tape = assemble("intcode/day8.asm", true);
 
     let result0 = IntCodeMachine::run_all(&tape, &digits).pop().unwrap();
     let result1 = 0i32;

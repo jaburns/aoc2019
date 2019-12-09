@@ -44,7 +44,16 @@ fn immediate_flag_for_index(word_i: usize) -> i32 {
 fn assemble_parsed_instruction(labels: &HashMap<String,i32>, parsed: &ParsedInstruction) -> Vec<i32> {
     if parsed.def.opcode < 0 {
         return match parsed.def.name {
-            "dd"   => vec![parsed.words[1].parse::<i32>().unwrap()],
+            "dd"   => {
+                let arg = &parsed.words[1];
+                vec![match arg.parse::<i32>() {
+                    Ok(x) => x,
+                    Err(_) => {
+                        let (arg_val, _) = parse_label(labels, arg);
+                        arg_val
+                    }
+                }]
+            }
             "zero" => vec![0; parsed.size as usize],
             _ => panic!(),
         };
