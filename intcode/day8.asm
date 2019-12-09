@@ -22,6 +22,15 @@ readLoop:
         add 1, curTwoCount, curTwoCount
     doneDigitCount:
 
+    ; Paint the current pixel value to the imageBuffer if it's still transparent
+        add curDigitCount, &imageBuffer, pxGet+1
+        pxGet: add pxGet, 0, pixelValue
+        less pixelValue, 2, compare
+        jnz compare, &alreadyPainted
+        add curDigitCount, &imageBuffer, pxSet+3
+        pxSet: add digit, 0, pxSet
+    alreadyPainted:
+
     ; Increment the overall counter for the layer, and if we're not done with
     ; this layer then keep reading digits.  150 = width(25) * height(6)
         add 1, curDigitCount, curDigitCount
@@ -46,7 +55,18 @@ readLoop:
         jz 0, &readLoop
 
 done:
+        ; Output the answer to part 1
         out bestProduct
+
+        ; Loop over the image buffer and output the 150 pixel values for part 2
+        add 0, 0, curDigitCount
+    outPart2Loop:
+        add curDigitCount, &imageBuffer, pxOut+1
+        pxOut: out pxOut
+        add 1, curDigitCount, curDigitCount
+        less curDigitCount, 150, compare
+        jnz compare, &outPart2Loop
+        
         halt
 
 digit:   dd 0
@@ -62,4 +82,5 @@ bestLayer:     dd 0
 bestZeroCount: dd 15000
 bestProduct:   dd 0
 
-imageBuffer:  zero 150
+imageBuffer: fill 2, 150
+pixelValue:  dd 0

@@ -26,14 +26,18 @@ const INSTRUCTIONS: [InstructionDef; 11] = [
     InstructionDef { name: "less", opcode:  7, inargs: 2, outargs: 1 },
     InstructionDef { name: "cmp",  opcode:  8, inargs: 2, outargs: 1 },
     InstructionDef { name: "dd",   opcode: -1, inargs: 0, outargs: 0 },
-    InstructionDef { name: "zero", opcode: -1, inargs: 0, outargs: 0 },
+    InstructionDef { name: "fill", opcode: -1, inargs: 0, outargs: 0 },
 ];
 
 fn parse_label(labels: &HashMap<String,i32>, arg: &str) -> (i32, bool) {
+    let with_offset: Vec<&str> = arg.split("+").collect();
+    let offset = if with_offset.len() > 1 { with_offset[1].parse::<i32>().unwrap() } else { 0 };
+    let arg = with_offset[0];
+
     if arg.starts_with("&") {
-        (labels[&arg[1..]], true)
+        (offset + labels[&arg[1..]], true)
     } else {
-        (labels[arg], false)
+        (offset + labels[arg], false)
     }
 }
 
@@ -43,18 +47,18 @@ fn immediate_flag_for_index(word_i: usize) -> i32 {
 
 fn assemble_parsed_instruction(labels: &HashMap<String,i32>, parsed: &ParsedInstruction) -> Vec<i32> {
     if parsed.def.opcode < 0 {
-        return match parsed.def.name {
-            "dd"   => {
-                let arg = &parsed.words[1];
-                vec![match arg.parse::<i32>() {
-                    Ok(x) => x,
-                    Err(_) => {
-                        let (arg_val, _) = parse_label(labels, arg);
-                        arg_val
-                    }
-                }]
+        let arg = &parsed.words[1];
+        let arg_val = match arg.parse::<i32>() {
+            Ok(x) => x,
+            Err(_) => {
+                let (arg_val, _) = parse_label(labels, arg);
+                arg_val
             }
-            "zero" => vec![0; parsed.size as usize],
+        };
+
+        return match parsed.def.name {
+            "dd"   => vec![arg_val],
+            "fill" => vec![arg_val; parsed.size as usize],
             _ => panic!(),
         };
     }
@@ -81,6 +85,7 @@ fn assemble_parsed_instruction(labels: &HashMap<String,i32>, parsed: &ParsedInst
         word_i += 1
     }
 
+    // TODO combine inarg outarg loop
     for _ in 0..parsed.def.outargs {
         let (arg_val, imm) = parse_label(labels, &parsed.words[word_i]);
         result.push(arg_val);
@@ -105,7 +110,7 @@ fn parse_instruction_text(text: &str) -> ParsedInstruction {
     if ins.opcode < 0 {
         return match words[0].as_str() {
             "dd"   => ParsedInstruction { size: 1, def: ins, words: words },
-            "zero" => ParsedInstruction { size: words[1].parse::<u32>().unwrap(), def: ins, words: words },
+            "fill" => ParsedInstruction { size: words[2].parse::<u32>().unwrap(), def: ins, words: words },
             _ => panic!(),
         };
     }

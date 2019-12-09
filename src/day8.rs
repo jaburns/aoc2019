@@ -10,10 +10,16 @@ pub fn main() {
 
     digits.push(99);
 
-    let tape = assemble("intcode/day8.asm", true);
+    let tape = assemble("intcode/day8.asm", false);
+    let results = IntCodeMachine::run_all(&tape, &digits);
 
-    let result0 = IntCodeMachine::run_all(&tape, &digits).pop().unwrap();
-    let result1 = 0i32;
+    let mut out_image = String::new();
+    for y in 0..6 {
+        for x in 0..25 {
+            out_image.push_str(if results[1 + y*25+x] == 1 { "X" } else { " " })
+        }
+        out_image.push_str("\n");
+    }
 
-    println!("{} {}", result0, result1);
+    println!("{}\n\n{}", results[0], out_image);
 }
