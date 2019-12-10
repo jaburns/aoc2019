@@ -7,6 +7,7 @@ mod day6;
 mod day7;
 mod day8;
 mod day9;
+mod day10;
 mod intcode;
 
 fn run_from_arg(arg: i32) {
@@ -20,12 +21,13 @@ fn run_from_arg(arg: i32) {
         7 => day7::main(),
         8 => day8::main(),
         9 => day9::main(),
+        10 => day10::main(),
         _ => {}
     }
 }
 
 fn run_default() {
-    day9::main()
+    day10::main()
 }
 
 fn main() {
