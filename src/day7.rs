@@ -23,25 +23,15 @@ fn run_feedback_amplifier_circuit(tape: &Vec<i64>, phase_seq: &[i64; 5]) -> i64 
 
     for i in 0..machines.len() {
         machines[i].run();
-        machines[i].provide_input(phase_seq[i]);
+        machines[i].input_and_continue(phase_seq[i]).unwrap();
     }
 
-    loop {
-        match machines[machine_index].run() {
-            RunResult::RequiresInput => machines[machine_index].provide_input(signal),
-            RunResult::Halted => break,
-            RunResult::ProvidingOutput(_) => panic!("Expected input or halt")
-        }
-
-        match machines[machine_index].run() {
-            RunResult::RequiresInput => panic!("Expected output or halt"),
-            RunResult::Halted => break,
-            RunResult::ProvidingOutput(x) => {
-                signal = x;
-                machine_index = (machine_index + 1) % 5
-            }
-        }
-    }
+    while let Ok(_) = (|| -> Result<(),()> {
+        machines[machine_index].input_and_continue(signal)?;
+        signal = machines[machine_index].output_and_continue()?;
+        machine_index = (machine_index + 1) % 5;
+        Ok(())
+    })() {};
 
     signal
 }

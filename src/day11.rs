@@ -164,13 +164,6 @@ impl PaintBot {
     }
 }
 
-fn paint_loop(brain: &mut IntCodeMachine, bot: &mut PaintBot) -> Result<(),()> {
-    let color_command = brain.output_and_continue()?;
-    let turn_command = brain.output_and_continue()?;
-    let new_color = bot.step(int_to_color(color_command), int_to_turn_cmd(turn_command));
-    brain.input_and_continue(color_to_int(new_color))
-}
-
 fn run_paint_bot(brain_tape: &[i64], start_color: PaintColor) -> PaintBot {
     let mut bot = PaintBot::new(start_color);
     let mut brain = IntCodeMachine::new(brain_tape);
@@ -178,7 +171,12 @@ fn run_paint_bot(brain_tape: &[i64], start_color: PaintColor) -> PaintBot {
     brain.run();
     brain.input_and_continue(color_to_int(start_color)).unwrap();
 
-    while let Ok(_) = paint_loop(&mut brain, &mut bot) { };
+    while let Ok(_) = (|| {
+        let color_command = brain.output_and_continue()?;
+        let turn_command = brain.output_and_continue()?;
+        let new_color = bot.step(int_to_color(color_command), int_to_turn_cmd(turn_command));
+        brain.input_and_continue(color_to_int(new_color))
+    })() {};
 
     bot
 }
