@@ -198,6 +198,31 @@ pub mod vm {
 
             outputs
         }
+
+        pub fn input_and_continue(&mut self, input: i64) -> Result<(),()> {
+            match self.last_result {
+                Some(RunResult::Halted) => Err(()),
+                Some(RunResult::ProvidingOutput(_)) => panic!("Expected input state, encountered output"),
+                Some(RunResult::RequiresInput) => {
+                    self.provide_input(input);
+                    self.run();
+                    Ok(())
+                }
+                None => panic!("Machine hasn't started yet")
+            }
+        }
+
+        pub fn output_and_continue(&mut self) -> Result<i64,()> {
+            match self.last_result {
+                Some(RunResult::Halted) => Err(()),
+                Some(RunResult::RequiresInput) => panic!("Expected output state, encountered input"),
+                Some(RunResult::ProvidingOutput(x)) => {
+                    self.run();
+                    Ok(x)
+                }
+                None => panic!("Machine hasn't started yet")
+            }
+        }
     }
 }
 
