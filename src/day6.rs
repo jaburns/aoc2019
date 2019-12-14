@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-fn path_to_center(orbit_map: &HashMap<String,String>, item: &str) -> Vec<String> {
+fn path_to_center(orbit_map: &HashMap<String, String>, item: &str) -> Vec<String> {
     let mut result = Vec::<String>::new();
 
     let mut cur_item: &str = item;
@@ -16,7 +16,7 @@ fn path_to_center(orbit_map: &HashMap<String,String>, item: &str) -> Vec<String>
     result
 }
 
-fn count_total_orbits(orbit_map: &HashMap<String,String>) -> i32 {
+fn count_total_orbits(orbit_map: &HashMap<String, String>) -> i32 {
     let mut sum = 0i32;
     for (k, _) in orbit_map {
         sum += path_to_center(orbit_map, k).len() as i32 - 1;
@@ -24,7 +24,7 @@ fn count_total_orbits(orbit_map: &HashMap<String,String>) -> i32 {
     sum
 }
 
-fn find_shortest_transfer(orbit_map: &HashMap<String,String>, from: &str, to: &str) -> i32 {
+fn find_shortest_transfer(orbit_map: &HashMap<String, String>, from: &str, to: &str) -> i32 {
     let mut path_from = path_to_center(orbit_map, from);
     let mut path_to = path_to_center(orbit_map, to);
 
@@ -37,15 +37,16 @@ fn find_shortest_transfer(orbit_map: &HashMap<String,String>, from: &str, to: &s
     while path_from[0] == path_to[0] {
         path_from.remove(0);
         path_to.remove(0);
-    } 
+    }
 
     (path_from.len() + path_to.len()) as i32
 }
 
 pub fn main() {
-    let mut orbit_map = HashMap::<String,String>::new();
+    let mut orbit_map = HashMap::<String, String>::new();
 
-    std::fs::read_to_string("data/day6.txt").unwrap()
+    std::fs::read_to_string("data/day6.txt")
+        .unwrap()
         .lines()
         .for_each(|x| {
             let parts: Vec<&str> = x.split(")").collect();

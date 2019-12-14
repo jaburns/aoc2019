@@ -1,5 +1,5 @@
-use crate::intcode::vm::{IntCodeMachine};
-use std::ops::{Range,Index,IndexMut};
+use crate::intcode::vm::IntCodeMachine;
+use std::ops::{Index, IndexMut, Range};
 
 #[derive(Debug)]
 struct TwoVec<T> {
@@ -11,19 +11,19 @@ impl<T> TwoVec<T> {
     pub fn new(center_item: T) -> TwoVec<T> {
         TwoVec {
             negative: Vec::<T>::new(),
-            positive: vec![ center_item ],
+            positive: vec![center_item],
         }
     }
 
-    pub fn expand_to_contain<F>(&mut self, index: i32, fill: F) where
-        F: Fn() -> T {
-
+    pub fn expand_to_contain<F>(&mut self, index: i32, fill: F)
+    where
+        F: Fn() -> T,
+    {
         if index < 0 {
             while (self.negative.len() as i32) < -index {
                 self.negative.push(fill());
             }
-        }
-        else {
+        } else {
             while (self.positive.len() as i32) < index + 1 {
                 self.positive.push(fill());
             }
@@ -33,7 +33,7 @@ impl<T> TwoVec<T> {
     pub fn index_range(&self) -> Range<i32> {
         Range {
             start: -(self.negative.len() as i32),
-            end: self.positive.len() as i32
+            end: self.positive.len() as i32,
         }
     }
 }
@@ -45,7 +45,7 @@ impl<T> Index<i32> for TwoVec<T> {
         if i < 0 {
             &self.negative[-i as usize - 1]
         } else {
-            &self.positive[ i as usize]
+            &self.positive[i as usize]
         }
     }
 }
@@ -55,16 +55,16 @@ impl<T> IndexMut<i32> for TwoVec<T> {
         if i < 0 {
             &mut self.negative[-i as usize - 1]
         } else {
-            &mut self.positive[ i as usize]
+            &mut self.positive[i as usize]
         }
     }
 }
 
-#[derive(Eq,PartialEq,Clone,Copy,Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 enum PaintColor {
     Unpainted,
     Black,
-    White
+    White,
 }
 
 fn color_to_int(c: PaintColor) -> i64 {
@@ -83,7 +83,7 @@ fn int_to_color(i: i64) -> PaintColor {
     }
 }
 
-#[derive(Eq,PartialEq,Clone,Copy,Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 enum TurnCommand {
     TurnLeft,
     TurnRight,
@@ -117,14 +117,15 @@ impl PaintBot {
         self.grid[self.position.0][self.position.1] = paint;
 
         match turn {
-            TurnCommand::TurnLeft  => self.direction = (-self.direction.1,  self.direction.0),
-            TurnCommand::TurnRight => self.direction = ( self.direction.1, -self.direction.0),
+            TurnCommand::TurnLeft => self.direction = (-self.direction.1, self.direction.0),
+            TurnCommand::TurnRight => self.direction = (self.direction.1, -self.direction.0),
         };
 
         self.position.0 += self.direction.0;
         self.position.1 += self.direction.1;
 
-        self.grid.expand_to_contain(self.position.0, || TwoVec::new(PaintColor::Unpainted));
+        self.grid
+            .expand_to_contain(self.position.0, || TwoVec::new(PaintColor::Unpainted));
         for i in self.grid.index_range() {
             self.grid[i].expand_to_contain(self.position.1, || PaintColor::Unpainted);
         }
@@ -168,20 +169,23 @@ fn run_paint_bot(brain_tape: &[i64], start_color: PaintColor) -> PaintBot {
     let mut bot = PaintBot::new(start_color);
     let mut brain = IntCodeMachine::new(brain_tape);
 
-    brain.run_and_provide_input(color_to_int(start_color)).unwrap();
+    brain
+        .run_and_provide_input(color_to_int(start_color))
+        .unwrap();
 
     while let Ok(_) = (|| {
         let color_command = brain.run_and_get_output()?;
         let turn_command = brain.run_and_get_output()?;
         let new_color = bot.step(int_to_color(color_command), int_to_turn_cmd(turn_command));
         brain.run_and_provide_input(color_to_int(new_color))
-    })() {};
+    })() {}
 
     bot
 }
 
 pub fn main() {
-    let tape: Vec<i64> = std::fs::read_to_string("data/day11.txt").unwrap()
+    let tape: Vec<i64> = std::fs::read_to_string("data/day11.txt")
+        .unwrap()
         .split(",")
         .map(|x| x.trim().parse().unwrap())
         .collect();

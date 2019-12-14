@@ -1,7 +1,7 @@
 use num::FromPrimitive;
 use num_derive::FromPrimitive;
 
-#[derive(FromPrimitive,Copy,Clone,Eq,PartialEq,Debug)]
+#[derive(FromPrimitive, Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Tile {
     Empty = 0,
     Wall,
@@ -17,9 +17,10 @@ pub struct Game {
     score: i64,
 }
 
-fn expand_to_contain<T,F>(vec: &mut Vec<Vec<T>>, x: usize, y: usize, fill: F) where
-    F: Fn() -> T {
-
+fn expand_to_contain<T, F>(vec: &mut Vec<Vec<T>>, x: usize, y: usize, fill: F)
+where
+    F: Fn() -> T,
+{
     let original_width = vec.len();
 
     while x >= vec.len() {
@@ -49,7 +50,11 @@ impl Game {
 
     pub fn load_state_stream(&mut self, serialized: &[i64]) {
         for i in 0..(serialized.len() / 3) {
-            self.write_state(serialized[3*i], serialized[3*i+1], serialized[3*i+2]);
+            self.write_state(
+                serialized[3 * i],
+                serialized[3 * i + 1],
+                serialized[3 * i + 2],
+            );
         }
     }
 
@@ -64,10 +69,10 @@ impl Game {
         match tile {
             Tile::Ball => self.ball_pos = (x as i32, y as i32),
             Tile::Paddle => self.paddle_pos = (x as i32, y as i32),
-            _ => ()
+            _ => (),
         };
 
-        expand_to_contain(&mut self.tiles, x as usize, y as usize, || Tile::Empty); 
+        expand_to_contain(&mut self.tiles, x as usize, y as usize, || Tile::Empty);
         self.tiles[x as usize][y as usize] = tile;
     }
 
@@ -83,9 +88,10 @@ impl Game {
         self.score
     }
 
-    pub fn map_tiles<T,F>(&self, f: F) -> Vec<Vec<T>> where
-        F: Fn(Tile) -> T {
-
+    pub fn map_tiles<T, F>(&self, f: F) -> Vec<Vec<T>>
+    where
+        F: Fn(Tile) -> T,
+    {
         let mut result: Vec<Vec<T>> = Vec::new();
 
         for x in 0..self.width() {

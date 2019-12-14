@@ -1,6 +1,6 @@
 use std::sync::mpsc;
-use std::thread;
 use std::sync::{Arc, Mutex};
+use std::thread;
 
 use crate::intcode::vm::IntCodeMachine;
 
@@ -12,11 +12,16 @@ fn count_blocks_and_measure_board(tape: &[i64]) -> (usize, usize, usize) {
     let map_data = IntCodeMachine::run_all(tape, &[]);
     let mut game = state::Game::new();
     game.load_state_stream(&map_data);
-    (game.count_tiles(state::Tile::Block), game.width(), game.height())
+    (
+        game.count_tiles(state::Tile::Block),
+        game.width(),
+        game.height(),
+    )
 }
 
 pub fn main() {
-    let tape: Vec<i64> = std::fs::read_to_string("data/day13.txt").unwrap()
+    let tape: Vec<i64> = std::fs::read_to_string("data/day13.txt")
+        .unwrap()
         .split(",")
         .map(|x| x.trim().parse().unwrap())
         .collect();
@@ -30,7 +35,8 @@ pub fn main() {
     let renderer_state = shared_state.clone();
     let sim_state = shared_state.clone();
 
-    let render_thread = thread::spawn(move || renderer::run(width as u32, height as u32, tick_rx, renderer_state));
+    let render_thread =
+        thread::spawn(move || renderer::run(width as u32, height as u32, tick_rx, renderer_state));
     let sim_thread = thread::spawn(move || sim::run(&tape, tick_tx, sim_state));
 
     render_thread.join().unwrap();

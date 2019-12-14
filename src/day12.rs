@@ -1,13 +1,13 @@
-use std::ops::{Add,AddAssign,SubAssign};
-use std::collections::HashSet;
-use regex::Regex;
 use num::integer::lcm;
+use regex::Regex;
+use std::collections::HashSet;
+use std::ops::{Add, AddAssign, SubAssign};
 
 fn lcm3(a: usize, b: usize, c: usize) -> usize {
     lcm(lcm(a, b), lcm(b, c))
 }
 
-#[derive(Clone,Copy,Debug,PartialEq,Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Vec3 {
     pub x: i32,
     pub y: i32,
@@ -41,7 +41,7 @@ impl Add<Vec3> for Vec3 {
 }
 
 impl AddAssign for Vec3 {
-   fn add_assign(&mut self, other: Self) {
+    fn add_assign(&mut self, other: Self) {
         *self = Self {
             x: self.x + other.x,
             y: self.y + other.y,
@@ -51,7 +51,7 @@ impl AddAssign for Vec3 {
 }
 
 impl SubAssign for Vec3 {
-   fn sub_assign(&mut self, other: Self) {
+    fn sub_assign(&mut self, other: Self) {
         *self = Self {
             x: self.x - other.x,
             y: self.y - other.y,
@@ -60,7 +60,7 @@ impl SubAssign for Vec3 {
     }
 }
 
-#[derive(Clone,Copy,Debug,PartialEq,Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Moon {
     pos: Vec3,
     vel: Vec3,
@@ -73,13 +73,23 @@ impl Moon {
         let vals: Vec<i32> = csv.split(",").map(|x| x.parse::<i32>().unwrap()).collect();
 
         Self {
-            pos: Vec3 { x: vals[0], y: vals[1], z: vals[2] },
+            pos: Vec3 {
+                x: vals[0],
+                y: vals[1],
+                z: vals[2],
+            },
             vel: Vec3::new(),
         }
     }
 
     fn delta_v(a: i32, b: i32) -> i32 {
-        if b > a { 1 } else if b == a { 0 } else { -1 }
+        if b > a {
+            1
+        } else if b == a {
+            0
+        } else {
+            -1
+        }
     }
 
     pub fn apply_gravity(first: &mut Self, second: &mut Self) {
@@ -128,9 +138,9 @@ fn get_step_count_to_repeat_state(moons_in: &[Moon]) -> usize {
     let mut y_steps = 0usize;
     let mut z_steps = 0usize;
 
-    let mut x_hash = HashSet::<[i32;8]>::new();
-    let mut y_hash = HashSet::<[i32;8]>::new();
-    let mut z_hash = HashSet::<[i32;8]>::new();
+    let mut x_hash = HashSet::<[i32; 8]>::new();
+    let mut y_hash = HashSet::<[i32; 8]>::new();
+    let mut z_hash = HashSet::<[i32; 8]>::new();
 
     let mut x_looped = false;
     let mut y_looped = false;
@@ -149,16 +159,34 @@ fn get_step_count_to_repeat_state(moons_in: &[Moon]) -> usize {
         }
 
         let hx = &[
-            moons[0].pos.x, moons[1].pos.x, moons[2].pos.x, moons[3].pos.x,
-            moons[0].vel.x, moons[1].vel.x, moons[2].vel.x, moons[3].vel.x
+            moons[0].pos.x,
+            moons[1].pos.x,
+            moons[2].pos.x,
+            moons[3].pos.x,
+            moons[0].vel.x,
+            moons[1].vel.x,
+            moons[2].vel.x,
+            moons[3].vel.x,
         ];
         let hy = &[
-            moons[0].pos.y, moons[1].pos.y, moons[2].pos.y, moons[3].pos.y,
-            moons[0].vel.y, moons[1].vel.y, moons[2].vel.y, moons[3].vel.y
+            moons[0].pos.y,
+            moons[1].pos.y,
+            moons[2].pos.y,
+            moons[3].pos.y,
+            moons[0].vel.y,
+            moons[1].vel.y,
+            moons[2].vel.y,
+            moons[3].vel.y,
         ];
         let hz = &[
-            moons[0].pos.z, moons[1].pos.z, moons[2].pos.z, moons[3].pos.z,
-            moons[0].vel.z, moons[1].vel.z, moons[2].vel.z, moons[3].vel.z
+            moons[0].pos.z,
+            moons[1].pos.z,
+            moons[2].pos.z,
+            moons[3].pos.z,
+            moons[0].vel.z,
+            moons[1].vel.z,
+            moons[2].vel.z,
+            moons[3].vel.z,
         ];
 
         if !x_looped {
@@ -188,14 +216,17 @@ fn get_step_count_to_repeat_state(moons_in: &[Moon]) -> usize {
             }
         }
 
-        if x_looped && y_looped && z_looped { break; }
+        if x_looped && y_looped && z_looped {
+            break;
+        }
     }
 
     lcm3(x_steps, y_steps, z_steps)
 }
 
 pub fn main() {
-    let moons: Vec<Moon> = std::fs::read_to_string("data/day12.txt").unwrap()
+    let moons: Vec<Moon> = std::fs::read_to_string("data/day12.txt")
+        .unwrap()
         .lines()
         .map(|x| Moon::new(x))
         .collect();

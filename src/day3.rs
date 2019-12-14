@@ -27,10 +27,10 @@ fn parse_wire_step(s: &str) -> WireStep {
     let amount = s.get(1..).unwrap().parse::<i32>().unwrap();
 
     match s.get(0..1).unwrap() {
-        "U" => WireStep(0,  amount),
+        "U" => WireStep(0, amount),
         "D" => WireStep(0, -amount),
         "L" => WireStep(-amount, 0),
-        "R" => WireStep( amount, 0),
+        "R" => WireStep(amount, 0),
         _ => panic!("Unexpected step direction"),
     }
 }
@@ -54,8 +54,7 @@ fn get_segs_from_steps(steps: &[WireStep]) -> Vec<WireSeg> {
                 ymax: std::cmp::max(y0, y1),
                 min_to_max: y1 > y0,
             }));
-        }
-        else {
+        } else {
             result.push(WireSeg::Horizontal(HorizontalWireSeg {
                 y: y1,
                 xmin: std::cmp::min(x0, x1),
@@ -72,7 +71,13 @@ fn get_segs_from_steps(steps: &[WireStep]) -> Vec<WireSeg> {
 }
 
 #[allow(unused_variables)]
-fn update_shortest_distance_score(min_score: i32, h: &HorizontalWireSeg, v: &VerticalWireSeg, h_steps: i32, v_steps: i32) -> i32 {
+fn update_shortest_distance_score(
+    min_score: i32,
+    h: &HorizontalWireSeg,
+    v: &VerticalWireSeg,
+    h_steps: i32,
+    v_steps: i32,
+) -> i32 {
     if v.x < h.xmin || v.x > h.xmax || h.y < v.ymin || h.y > v.ymax || h.y == 0 && v.x == 0 {
         min_score
     } else {
@@ -80,19 +85,37 @@ fn update_shortest_distance_score(min_score: i32, h: &HorizontalWireSeg, v: &Ver
     }
 }
 
-fn update_shortest_steps_score(min_score: i32, h: &HorizontalWireSeg, v: &VerticalWireSeg, h_steps: i32, v_steps: i32) -> i32 {
+fn update_shortest_steps_score(
+    min_score: i32,
+    h: &HorizontalWireSeg,
+    v: &VerticalWireSeg,
+    h_steps: i32,
+    v_steps: i32,
+) -> i32 {
     if v.x < h.xmin || v.x > h.xmax || h.y < v.ymin || h.y > v.ymax || h.y == 0 && v.x == 0 {
         min_score
     } else {
-        let v_new_steps = if v.min_to_max { h.y - v.ymin } else { v.ymax - h.y };
-        let h_new_steps = if h.min_to_max { v.x - h.xmin } else { h.xmax - v.x };
+        let v_new_steps = if v.min_to_max {
+            h.y - v.ymin
+        } else {
+            v.ymax - h.y
+        };
+        let h_new_steps = if h.min_to_max {
+            v.x - h.xmin
+        } else {
+            h.xmax - v.x
+        };
 
         let all_steps = v_steps + v_new_steps + h_steps + h_new_steps;
         std::cmp::min(min_score, all_steps)
     }
 }
 
-fn find_best_intersection_score(sa: &[WireSeg], sb: &[WireSeg], score_update_fn: fn(i32, &HorizontalWireSeg, &VerticalWireSeg, i32, i32) -> i32) -> i32 {
+fn find_best_intersection_score(
+    sa: &[WireSeg],
+    sb: &[WireSeg],
+    score_update_fn: fn(i32, &HorizontalWireSeg, &VerticalWireSeg, i32, i32) -> i32,
+) -> i32 {
     let mut min_score = std::i32::MAX;
     let mut a_steps = 0i32;
 
@@ -104,8 +127,7 @@ fn find_best_intersection_score(sa: &[WireSeg], sb: &[WireSeg], score_update_fn:
                 if let WireSeg::Horizontal(h) = b {
                     min_score = score_update_fn(min_score, h, v, b_steps, a_steps);
                 }
-            }
-            else if let WireSeg::Vertical(v) = b {
+            } else if let WireSeg::Vertical(v) = b {
                 if let WireSeg::Horizontal(h) = a {
                     min_score = score_update_fn(min_score, h, v, a_steps, b_steps);
                 }
@@ -113,13 +135,13 @@ fn find_best_intersection_score(sa: &[WireSeg], sb: &[WireSeg], score_update_fn:
 
             match b {
                 WireSeg::Horizontal(h) => b_steps += h.xmax - h.xmin,
-                WireSeg::Vertical(v)   => b_steps += v.ymax - v.ymin,
+                WireSeg::Vertical(v) => b_steps += v.ymax - v.ymin,
             }
         }
 
         match a {
             WireSeg::Horizontal(h) => a_steps += h.xmax - h.xmin,
-            WireSeg::Vertical(v)   => a_steps += v.ymax - v.ymin,
+            WireSeg::Vertical(v) => a_steps += v.ymax - v.ymin,
         }
     }
 
@@ -127,7 +149,8 @@ fn find_best_intersection_score(sa: &[WireSeg], sb: &[WireSeg], score_update_fn:
 }
 
 pub fn main() {
-    let wire_steps: Vec<Vec<WireStep>> = std::fs::read_to_string("data/day3.txt").unwrap()
+    let wire_steps: Vec<Vec<WireStep>> = std::fs::read_to_string("data/day3.txt")
+        .unwrap()
         .lines()
         .map(|x| String::from(x).split(",").map(parse_wire_step).collect())
         .collect();

@@ -1,14 +1,14 @@
 pub mod defs {
     pub const I_HALT: i64 = 99;
-    pub const I_ADD:  i64 = 01;
-    pub const I_MUL:  i64 = 02;
-    pub const I_IN:   i64 = 03;
-    pub const I_OUT:  i64 = 04;
-    pub const I_JNZ:  i64 = 05;
-    pub const I_JZ:   i64 = 06;
+    pub const I_ADD: i64 = 01;
+    pub const I_MUL: i64 = 02;
+    pub const I_IN: i64 = 03;
+    pub const I_OUT: i64 = 04;
+    pub const I_JNZ: i64 = 05;
+    pub const I_JZ: i64 = 06;
     pub const I_LESS: i64 = 07;
-    pub const I_CMP:  i64 = 08;
-    pub const I_RBA:  i64 = 09;
+    pub const I_CMP: i64 = 08;
+    pub const I_RBA: i64 = 09;
 }
 
 pub mod vm {
@@ -57,16 +57,16 @@ pub mod vm {
                 match self.tape[self.ip] % 100 {
                     I_HALT => {
                         self.last_result = Some(RunResult::Halted);
-                        break
-                    },
+                        break;
+                    }
 
-                    I_ADD => { 
+                    I_ADD => {
                         let arg0 = self.get_arg(0);
                         let arg1 = self.get_arg(1);
                         let arg2 = self.get_out_arg(2);
                         self.write_to_tape(arg2 as usize, arg0 + arg1);
                         self.ip += 4
-                    },
+                    }
 
                     I_MUL => {
                         let arg0 = self.get_arg(0);
@@ -74,21 +74,21 @@ pub mod vm {
                         let arg2 = self.get_out_arg(2);
                         self.write_to_tape(arg2 as usize, arg0 * arg1);
                         self.ip += 4
-                    },
+                    }
 
                     I_IN => {
                         self.input_address = self.get_out_arg(0);
                         self.last_result = Some(RunResult::RequiresInput);
                         self.ip += 2;
-                        break
-                    },
+                        break;
+                    }
 
                     I_OUT => {
                         let arg0 = self.get_arg(0);
                         self.last_result = Some(RunResult::ProvidingOutput(arg0));
                         self.ip += 2;
-                        break
-                    },
+                        break;
+                    }
 
                     I_JNZ => {
                         let arg0 = self.get_arg(0);
@@ -98,7 +98,7 @@ pub mod vm {
                         } else {
                             self.ip += 3
                         }
-                    },
+                    }
 
                     I_JZ => {
                         let arg0 = self.get_arg(0);
@@ -108,7 +108,7 @@ pub mod vm {
                         } else {
                             self.ip += 3
                         }
-                    },
+                    }
 
                     I_LESS => {
                         let arg0 = self.get_arg(0);
@@ -116,7 +116,7 @@ pub mod vm {
                         let arg2 = self.get_out_arg(2);
                         self.write_to_tape(arg2 as usize, if arg0 < arg1 { 1 } else { 0 });
                         self.ip += 4
-                    },
+                    }
 
                     I_CMP => {
                         let arg0 = self.get_arg(0);
@@ -124,7 +124,7 @@ pub mod vm {
                         let arg2 = self.get_out_arg(2);
                         self.write_to_tape(arg2 as usize, if arg0 == arg1 { 1 } else { 0 });
                         self.ip += 4
-                    },
+                    }
 
                     I_RBA => {
                         let arg0 = self.get_arg(0);
@@ -132,7 +132,10 @@ pub mod vm {
                         self.ip += 2
                     }
 
-                    _ => panic!("ABORTED: Encountered unknown opcode {} at location {}", self.tape[self.ip], self.ip)
+                    _ => panic!(
+                        "ABORTED: Encountered unknown opcode {} at location {}",
+                        self.tape[self.ip], self.ip
+                    ),
                 }
             }
 
@@ -166,11 +169,11 @@ pub mod vm {
             let arg_digit = self.get_arg_digit(arg);
 
             if arg_digit == 1 {
-                self.read_from_tape(self.ip+arg+1)
+                self.read_from_tape(self.ip + arg + 1)
             } else if arg_digit == 2 {
-                self.read_from_tape((self.tape[self.ip+arg+1] + self.relative_base) as usize)
+                self.read_from_tape((self.tape[self.ip + arg + 1] + self.relative_base) as usize)
             } else {
-                self.read_from_tape(self.tape[self.ip+arg+1] as usize)
+                self.read_from_tape(self.tape[self.ip + arg + 1] as usize)
             }
         }
 
@@ -178,9 +181,9 @@ pub mod vm {
             let arg_digit = self.get_arg_digit(arg);
 
             if arg_digit == 2 {
-                (self.read_from_tape(self.ip+arg+1) + self.relative_base) as usize
+                (self.read_from_tape(self.ip + arg + 1) + self.relative_base) as usize
             } else {
-                self.read_from_tape(self.ip+arg+1) as usize
+                self.read_from_tape(self.ip + arg + 1) as usize
             }
         }
 
@@ -193,7 +196,7 @@ pub mod vm {
                 match vm.run() {
                     RunResult::Halted => break,
                     RunResult::ProvidingOutput(x) => outputs.push(x),
-                    RunResult::RequiresInput => { 
+                    RunResult::RequiresInput => {
                         vm.provide_input(inputs[input_ptr]);
                         input_ptr += 1
                     }
@@ -203,7 +206,7 @@ pub mod vm {
             outputs
         }
 
-        pub fn run_and_provide_input(&mut self, input: i64) -> Result<(),()> {
+        pub fn run_and_provide_input(&mut self, input: i64) -> Result<(), ()> {
             match self.run() {
                 RunResult::Halted => Err(()),
                 RunResult::ProvidingOutput(_) => panic!("Expected input state, encountered output"),
@@ -214,19 +217,19 @@ pub mod vm {
             }
         }
 
-        pub fn run_and_get_output(&mut self) -> Result<i64,()> {
+        pub fn run_and_get_output(&mut self) -> Result<i64, ()> {
             match self.run() {
                 RunResult::Halted => Err(()),
                 RunResult::RequiresInput => panic!("Expected output state, encountered input"),
-                RunResult::ProvidingOutput(x) => Ok(x)
+                RunResult::ProvidingOutput(x) => Ok(x),
             }
         }
     }
 }
 
 pub mod assembler {
-    use std::collections::HashMap;
     use crate::intcode::defs::*;
+    use std::collections::HashMap;
 
     #[derive(Debug)]
     struct InstructionDef {
@@ -241,32 +244,92 @@ pub mod assembler {
         pub size: u64,
         pub def: &'static InstructionDef,
         pub words: Vec<String>,
-        pub internal_labels: Vec<(String,u64)>,
+        pub internal_labels: Vec<(String, u64)>,
     }
 
     #[derive(PartialEq, Eq, Debug, Clone, Copy)]
     enum AddressMode {
         Pointer,
         Immediate,
-        Relative
+        Relative,
     }
 
     const INSTRUCTIONS: [InstructionDef; 12] = [
-        InstructionDef { name: "halt", opcode: I_HALT, inargs: 0, outargs: 0 },
-        InstructionDef { name: "add",  opcode: I_ADD,  inargs: 2, outargs: 1 },
-        InstructionDef { name: "mul",  opcode: I_MUL,  inargs: 2, outargs: 1 },
-        InstructionDef { name: "in",   opcode: I_IN,   inargs: 0, outargs: 1 },
-        InstructionDef { name: "out",  opcode: I_OUT,  inargs: 1, outargs: 0 },
-        InstructionDef { name: "jnz",  opcode: I_JNZ,  inargs: 2, outargs: 0 },
-        InstructionDef { name: "jz",   opcode: I_JZ,   inargs: 2, outargs: 0 },
-        InstructionDef { name: "less", opcode: I_LESS, inargs: 2, outargs: 1 },
-        InstructionDef { name: "cmp",  opcode: I_CMP,  inargs: 2, outargs: 1 },
-        InstructionDef { name: "rba",  opcode: I_RBA,  inargs: 1, outargs: 0 },
-        InstructionDef { name: "dd",   opcode: -1,     inargs: 0, outargs: 0 },
-        InstructionDef { name: "fill", opcode: -1,     inargs: 0, outargs: 0 },
+        InstructionDef {
+            name: "halt",
+            opcode: I_HALT,
+            inargs: 0,
+            outargs: 0,
+        },
+        InstructionDef {
+            name: "add",
+            opcode: I_ADD,
+            inargs: 2,
+            outargs: 1,
+        },
+        InstructionDef {
+            name: "mul",
+            opcode: I_MUL,
+            inargs: 2,
+            outargs: 1,
+        },
+        InstructionDef {
+            name: "in",
+            opcode: I_IN,
+            inargs: 0,
+            outargs: 1,
+        },
+        InstructionDef {
+            name: "out",
+            opcode: I_OUT,
+            inargs: 1,
+            outargs: 0,
+        },
+        InstructionDef {
+            name: "jnz",
+            opcode: I_JNZ,
+            inargs: 2,
+            outargs: 0,
+        },
+        InstructionDef {
+            name: "jz",
+            opcode: I_JZ,
+            inargs: 2,
+            outargs: 0,
+        },
+        InstructionDef {
+            name: "less",
+            opcode: I_LESS,
+            inargs: 2,
+            outargs: 1,
+        },
+        InstructionDef {
+            name: "cmp",
+            opcode: I_CMP,
+            inargs: 2,
+            outargs: 1,
+        },
+        InstructionDef {
+            name: "rba",
+            opcode: I_RBA,
+            inargs: 1,
+            outargs: 0,
+        },
+        InstructionDef {
+            name: "dd",
+            opcode: -1,
+            inargs: 0,
+            outargs: 0,
+        },
+        InstructionDef {
+            name: "fill",
+            opcode: -1,
+            inargs: 0,
+            outargs: 0,
+        },
     ];
 
-    fn parse_label(labels: &HashMap<String,i64>, arg: &str) -> (i64, AddressMode) {
+    fn parse_label(labels: &HashMap<String, i64>, arg: &str) -> (i64, AddressMode) {
         if arg.starts_with("$") {
             (0, AddressMode::Pointer)
         } else if arg.starts_with("&") {
@@ -280,13 +343,16 @@ pub mod assembler {
 
     fn get_address_mode_flag(word_i: usize, mode: AddressMode) -> i64 {
         match mode {
-            AddressMode::Pointer   => 0,
+            AddressMode::Pointer => 0,
             AddressMode::Immediate => 10i64.pow(1 + word_i as u32),
-            AddressMode::Relative  => 2 * 10i64.pow(1 + word_i as u32),
+            AddressMode::Relative => 2 * 10i64.pow(1 + word_i as u32),
         }
     }
 
-    fn assemble_parsed_instruction(labels: &HashMap<String,i64>, parsed: &ParsedInstruction) -> Vec<i64> {
+    fn assemble_parsed_instruction(
+        labels: &HashMap<String, i64>,
+        parsed: &ParsedInstruction,
+    ) -> Vec<i64> {
         if parsed.def.opcode < 0 {
             let arg = &parsed.words[1];
             let arg_val = match arg.parse::<i64>() {
@@ -298,7 +364,7 @@ pub mod assembler {
             };
 
             return match parsed.def.name {
-                "dd"   => vec![arg_val],
+                "dd" => vec![arg_val],
                 "fill" => vec![arg_val; parsed.size as usize],
                 _ => panic!(),
             };
@@ -315,7 +381,7 @@ pub mod assembler {
                 Ok(x) => {
                     op_flags += get_address_mode_flag(word_i, AddressMode::Immediate);
                     x
-                },
+                }
                 Err(_) => {
                     let (arg_val, mode) = parse_label(labels, arg);
                     op_flags += get_address_mode_flag(word_i, mode);
@@ -328,7 +394,9 @@ pub mod assembler {
 
         for _ in 0..parsed.def.outargs {
             let (arg_val, mode) = parse_label(labels, &parsed.words[word_i]);
-            if mode == AddressMode::Immediate { panic!("Cannot have immediate-mode out arg"); }
+            if mode == AddressMode::Immediate {
+                panic!("Cannot have immediate-mode out arg");
+            }
             op_flags += get_address_mode_flag(word_i, mode);
             result.push(arg_val);
             word_i += 1
@@ -341,38 +409,44 @@ pub mod assembler {
 
     fn parse_instruction_text(text: &str) -> ParsedInstruction {
         let no_commas = String::from(text).replace(",", " ");
-        let words: Vec<String> = no_commas.split_whitespace().map(|x| String::from(x)).collect();
+        let words: Vec<String> = no_commas
+            .split_whitespace()
+            .map(|x| String::from(x))
+            .collect();
 
-        let ins: &InstructionDef = INSTRUCTIONS
-            .iter()
-            .find(|x| x.name == words[0])
-            .unwrap();
+        let ins: &InstructionDef = INSTRUCTIONS.iter().find(|x| x.name == words[0]).unwrap();
 
         let size = match words[0].as_str() {
-            "dd"   => 1, 
+            "dd" => 1,
             "fill" => words[2].parse::<u64>().unwrap(),
-            _      => 1 + ins.inargs + ins.outargs,
+            _ => 1 + ins.inargs + ins.outargs,
         };
 
-        let mut internal_labels = Vec::<(String,u64)>::new();
+        let mut internal_labels = Vec::<(String, u64)>::new();
         for i in 1..words.len() {
             if words[i].starts_with("$") {
                 internal_labels.push((String::from(&words[i][1..]), i as u64));
             }
         }
 
-        ParsedInstruction { size: size, def: ins, words: words, internal_labels: internal_labels }
+        ParsedInstruction {
+            size: size,
+            def: ins,
+            words: words,
+            internal_labels: internal_labels,
+        }
     }
 
     pub fn assemble(path: &str, debug: bool) -> Vec<i64> {
-        let source: Vec<String> = std::fs::read_to_string(path).unwrap()
+        let source: Vec<String> = std::fs::read_to_string(path)
+            .unwrap()
             .replace(":", ":\n")
             .lines()
             .map(|x| String::from(x.trim()))
             .filter(|x| x.len() > 0 && !x.starts_with(";"))
             .collect();
 
-        let mut address_labels = HashMap::<String,i64>::new();
+        let mut address_labels = HashMap::<String, i64>::new();
         let mut cur_address = 0u64;
         let mut instructions = Vec::<ParsedInstruction>::new();
 
@@ -396,10 +470,12 @@ pub mod assembler {
         for ins in instructions {
             let addr = output.len();
             let asm = assemble_parsed_instruction(&address_labels, &ins);
-            if debug { println!("{} : {:?} : {:?}", addr, ins.words, asm) };
+            if debug {
+                println!("{} : {:?} : {:?}", addr, ins.words, asm)
+            };
             output.extend(asm);
         }
-        
+
         if debug {
             println!("");
             println!("{:?}", output);

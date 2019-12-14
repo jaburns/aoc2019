@@ -15,13 +15,12 @@ fn true_fuel_from_mass(mass: i32) -> i32 {
 }
 
 fn get_fuel_using(masses: &[i32], calc: fn(i32) -> i32) -> i32 {
-    masses.iter()
-        .map(|x| calc(*x))
-        .fold(0, |acc, x| acc + x)
+    masses.iter().map(|x| calc(*x)).fold(0, |acc, x| acc + x)
 }
 
 pub fn main() {
-    let masses: Vec<i32> = std::fs::read_to_string("data/day1.txt").unwrap()
+    let masses: Vec<i32> = std::fs::read_to_string("data/day1.txt")
+        .unwrap()
         .lines()
         .map(|x| x.trim().parse().unwrap())
         .collect();
