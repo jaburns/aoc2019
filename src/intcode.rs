@@ -44,6 +44,17 @@ pub mod vm {
             self.write_to_tape(self.input_address, input);
         }
 
+        pub fn poke(&mut self, addr: usize, val: i64) {
+            self.tape[addr] = val;
+        }
+
+        pub fn get_current_output(&self) -> i64 {
+            match self.last_result {
+                Some(RunResult::ProvidingOutput(x)) => x,
+                _ => panic!("Machine was not in output state")
+            }
+        }
+
         pub fn run(&mut self) -> RunResult {
             if self.last_result == Some(RunResult::Halted) {
                 panic!("Cannot continue from halted state");

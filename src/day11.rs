@@ -1,4 +1,4 @@
-use crate::intcode::vm::{IntCodeMachine,RunResult};
+use crate::intcode::vm::{IntCodeMachine};
 use std::ops::{Range,Index,IndexMut};
 
 #[derive(Debug)]
