@@ -22,13 +22,12 @@ fn run_feedback_amplifier_circuit(tape: &Vec<i64>, phase_seq: &[i64; 5]) -> i64 
     ];
 
     for i in 0..machines.len() {
-        machines[i].run();
-        machines[i].input_and_continue(phase_seq[i]).unwrap();
+        machines[i].run_and_provide_input(phase_seq[i]).unwrap();
     }
 
     while let Ok(_) = (|| -> Result<(),()> {
-        machines[machine_index].input_and_continue(signal)?;
-        signal = machines[machine_index].output_and_continue()?;
+        machines[machine_index].run_and_provide_input(signal)?;
+        signal = machines[machine_index].run_and_get_output()?;
         machine_index = (machine_index + 1) % 5;
         Ok(())
     })() {};

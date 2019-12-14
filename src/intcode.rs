@@ -48,13 +48,6 @@ pub mod vm {
             self.tape[addr] = val;
         }
 
-        pub fn get_current_output(&self) -> i64 {
-            match self.last_result {
-                Some(RunResult::ProvidingOutput(x)) => x,
-                _ => panic!("Machine was not in output state")
-            }
-        }
-
         pub fn run(&mut self) -> RunResult {
             if self.last_result == Some(RunResult::Halted) {
                 panic!("Cannot continue from halted state");
@@ -210,28 +203,22 @@ pub mod vm {
             outputs
         }
 
-        pub fn input_and_continue(&mut self, input: i64) -> Result<(),()> {
-            match self.last_result {
-                Some(RunResult::Halted) => Err(()),
-                Some(RunResult::ProvidingOutput(_)) => panic!("Expected input state, encountered output"),
-                Some(RunResult::RequiresInput) => {
+        pub fn run_and_provide_input(&mut self, input: i64) -> Result<(),()> {
+            match self.run() {
+                RunResult::Halted => Err(()),
+                RunResult::ProvidingOutput(_) => panic!("Expected input state, encountered output"),
+                RunResult::RequiresInput => {
                     self.provide_input(input);
-                    self.run();
                     Ok(())
                 }
-                None => panic!("Machine hasn't started yet")
             }
         }
 
-        pub fn output_and_continue(&mut self) -> Result<i64,()> {
-            match self.last_result {
-                Some(RunResult::Halted) => Err(()),
-                Some(RunResult::RequiresInput) => panic!("Expected output state, encountered input"),
-                Some(RunResult::ProvidingOutput(x)) => {
-                    self.run();
-                    Ok(x)
-                }
-                None => panic!("Machine hasn't started yet")
+        pub fn run_and_get_output(&mut self) -> Result<i64,()> {
+            match self.run() {
+                RunResult::Halted => Err(()),
+                RunResult::RequiresInput => panic!("Expected output state, encountered input"),
+                RunResult::ProvidingOutput(x) => Ok(x)
             }
         }
     }

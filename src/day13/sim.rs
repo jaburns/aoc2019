@@ -31,10 +31,8 @@ pub fn run(game_tape: &[i64], tick_tx: Sender<()>, shared_state: Arc<Mutex<Game>
             },
 
             RunResult::ProvidingOutput(x) => {
-                machine.run(); // TODO replace output_and_continue with run_and_get_output, same with input and continue
-                let y = machine.get_current_output();
-                machine.run();
-                let t = machine.get_current_output();
+                let y = machine.run_and_get_output().unwrap();
+                let t = machine.run_and_get_output().unwrap();
 
                 let mut game = shared_state.lock().unwrap();
                 game.write_state(x, y, t);
