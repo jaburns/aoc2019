@@ -16,6 +16,7 @@ mod day6;
 mod day7;
 mod day8;
 mod day9;
+mod expanse;
 mod intcode;
 
 fn run_from_arg(arg: i32) {
