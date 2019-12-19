@@ -8,6 +8,8 @@ mod day12;
 mod day13;
 mod day14;
 mod day15;
+mod day16;
+mod day17;
 mod day2;
 mod day3;
 mod day4;
@@ -36,12 +38,14 @@ fn run_from_arg(arg: i32) {
         13 => day13::main(),
         14 => day14::main(), // INCOMPLETE
         15 => day15::main(),
+        16 => day16::main(),
+        17 => day17::main(),
         _ => {}
     }
 }
 
 fn run_default() {
-    day15::main()
+    day17::main()
 }
 
 fn main() {

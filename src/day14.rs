@@ -34,7 +34,8 @@ impl Reactor {
             .map(|&x| Self::parse_ingredient(x))
             .collect();
 
-        self.recipes.insert(parsed_output.0, (parsed_output.1, ingredients));
+        self.recipes
+            .insert(parsed_output.0, (parsed_output.1, ingredients));
     }
 
     fn store_chemcial(store: &mut ChemicalStore, chemical: &str, count: u32) {
@@ -59,7 +60,12 @@ impl Reactor {
         *store.get_mut(chemical).unwrap() -= count;
     }
 
-    fn produce_chemical(recipes: &RecipeBook, store: &mut ChemicalStore, chemical: &str, count: u32) -> u32 {
+    fn produce_chemical(
+        recipes: &RecipeBook,
+        store: &mut ChemicalStore,
+        chemical: &str,
+        count: u32,
+    ) -> u32 {
         if chemical == "ORE" {
             Self::store_chemcial(store, "ORE", count);
             return count;

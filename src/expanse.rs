@@ -35,6 +35,10 @@ impl<T> TwoVec<T> {
             end: self.positive.len() as i32,
         }
     }
+
+    pub fn empty(&self) -> bool {
+        self.negative.len() + self.positive.len() == 0
+    }
 }
 
 impl<T> Index<i32> for TwoVec<T> {
@@ -61,7 +65,7 @@ impl<T> IndexMut<i32> for TwoVec<T> {
 
 #[derive(Debug)]
 pub struct Expanse<T> {
-    grid: TwoVec<TwoVec<(bool, T)>>,
+    grid: TwoVec<TwoVec<Option<T>>>,
 }
 
 impl<T> Expanse<T> {
@@ -73,49 +77,83 @@ impl<T> Expanse<T> {
 
     pub fn read(&self, x: i32, y: i32) -> Option<&T> {
         if self.grid.index_range().contains(&x) && self.grid[x].index_range().contains(&y) {
-            let cell = &self.grid[x][y];
-            if cell.0 {
-                Some(&cell.1)
-            } else {
-                None
-            }
+            self.grid[x][y].as_ref()
         } else {
             None
         }
     }
 
-    pub fn write<F>(&mut self, x: i32, y: i32, item: T, filler: F) where
-        F: Fn() -> T {
-
+    pub fn write(&mut self, x: i32, y: i32, item: T) {
         self.grid.expand_to_contain(x, || TwoVec::new());
         for i in self.grid.index_range() {
-            self.grid[i].expand_to_contain(y, || (false, filler()));
+            self.grid[i].expand_to_contain(y, || None);
         }
-        self.grid[x][y] = (true, item);
+        self.grid[x][y] = Some(item);
     }
 
-    pub fn for_each<F>(&self, f: &mut F) where F: FnMut(i32,i32,Option<&T>) {
+    pub fn find<F>(&self, f: F) -> Option<(i32, i32)>
+    where
+        F: Fn(&T) -> bool,
+    {
         for x in self.grid.index_range() {
             for y in self.grid[x].index_range() {
-                f(x, y, self.read(x, y));
+                match self.read(x, y) {
+                    Some(z) => {
+                        if f(z) {
+                            return Some((x, y));
+                        }
+                    }
+                    None => (),
+                }
             }
+        }
+        None
+    }
+
+    pub fn x_range(&self) -> Range<i32> {
+        self.grid.index_range()
+    }
+
+    pub fn y_range(&self) -> Range<i32> {
+        if self.grid.empty() {
+            0..0
+        } else {
+            self.grid[0].index_range()
         }
     }
 
+    pub fn render_to_string<F>(&self, y_increases_up: bool, empty: &str, f: F) -> String
+    where
+        F: Fn(&T) -> &str,
+    {
+        fn inner_fn<T, G, I: Iterator<Item = i32>>(
+            this: &Expanse<T>,
+            empty: &str,
+            f: G,
+            y_range: I,
+        ) -> String
+        where
+            G: Fn(&T) -> &str,
+        {
+            let mut result = String::new();
 
-    pub fn render_to_string<F>(&self, f: F) -> String where F: Fn(&T) -> &str {
-        let mut result = String::new();
-
-        for y in self.grid[0].index_range().rev() {
-            for x in self.grid.index_range() {
-                result.push_str(match self.read(x, y) {
-                    Some(x) => f(x),
-                    None => " ",
-                });
+            for y in y_range {
+                for x in this.x_range() {
+                    result.push_str(match this.read(x, y) {
+                        Some(x) => f(x),
+                        None => empty,
+                    });
+                }
+                result.push_str("\n");
             }
-            result.push_str("\n");
+
+            result
         }
 
-        result
+        if y_increases_up {
+            inner_fn(self, empty, f, self.y_range().rev())
+        } else {
+            inner_fn(self, empty, f, self.y_range())
+        }
     }
 }

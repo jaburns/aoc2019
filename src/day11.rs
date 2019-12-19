@@ -1,7 +1,7 @@
-use crate::intcode::vm::IntCodeMachine;
 use crate::expanse::Expanse;
+use crate::intcode::vm::IntCodeMachine;
 
-#[derive(Debug,Eq,PartialEq,Copy,Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum PaintColor {
     Unpainted,
     Black,
@@ -55,7 +55,7 @@ impl PaintBot {
     }
 
     pub fn step(&mut self, paint: PaintColor, turn: TurnCommand) -> PaintColor {
-        self.grid.write(self.position.0, self.position.1, paint, || PaintColor::Unpainted);
+        self.grid.write(self.position.0, self.position.1, paint);
 
         match turn {
             TurnCommand::TurnLeft => self.direction = (-self.direction.1, self.direction.0),
@@ -74,17 +74,25 @@ impl PaintBot {
     pub fn count_painted_tiles(&self) -> u32 {
         let mut result = 0u32;
 
-        self.grid.for_each(&mut |_, _, item| {
-            if item.is_some() {
-                result += 1;
+        for x in self.grid.x_range() {
+            for y in self.grid.y_range() {
+                if self.grid.read(x, y).is_some() {
+                    result += 1;
+                }
             }
-        });
+        }
 
         result
     }
 
     pub fn render_image_to_string(&self) -> String {
-        self.grid.render_to_string(|color| if color == &PaintColor::White { "X" } else { " " })
+        self.grid.render_to_string(true, " ", |color| {
+            if color == &PaintColor::White {
+                "X"
+            } else {
+                " "
+            }
+        })
     }
 }
 
