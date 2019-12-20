@@ -36,10 +36,9 @@ fn find_beam_location_supporting_square(drone: &BeamDrone, size: u32) -> (u32, u
 
     while !drone.query(x + 1 - size, y + size - 1) {
         y += 1;
-        while drone.query(x, y) {
+        while drone.query(x + 1, y) {
             x += 1;
         }
-        x -= 1;
     }
 
     (x + 1 - size, y)
