@@ -10,6 +10,8 @@ mod day14;
 mod day15;
 mod day16;
 mod day17;
+mod day18;
+mod day19;
 mod day2;
 mod day3;
 mod day4;
@@ -40,12 +42,14 @@ fn run_from_arg(arg: i32) {
         15 => day15::main(),
         16 => day16::main(),
         17 => day17::main(),
+        18 => day18::main(), // EMPTY
+        19 => day19::main(),
         _ => {}
     }
 }
 
 fn run_default() {
-    day17::main()
+    day18::main()
 }
 
 fn main() {
