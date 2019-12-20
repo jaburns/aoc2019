@@ -235,29 +235,21 @@ fn encode_path(
             break;
         }
 
-        if &chomped[0..sub_a.len()] == sub_a {
-            for _ in 0..sub_a.len() {
-                chomped.remove(0);
+        let mut chomp = |sub: &[PathToken], call: SubRoutineCall| {
+            if &chomped[0..sub.len()] == sub {
+                for _ in 0..sub.len() {
+                    chomped.remove(0);
+                }
+                result.push(call);
+                true
+            } else {
+                false
             }
-            result.push(SubRoutineCall::A);
-            continue;
-        }
+        };
 
-        if &chomped[0..sub_b.len()] == sub_b {
-            for _ in 0..sub_b.len() {
-                chomped.remove(0);
-            }
-            result.push(SubRoutineCall::B);
-            continue;
-        }
-
-        if &chomped[0..sub_c.len()] == sub_c {
-            for _ in 0..sub_c.len() {
-                chomped.remove(0);
-            }
-            result.push(SubRoutineCall::C);
-            continue;
-        }
+        if chomp(sub_a, SubRoutineCall::A) { continue; }
+        if chomp(sub_b, SubRoutineCall::B) { continue; }
+        if chomp(sub_c, SubRoutineCall::C) { continue; }
 
         return None;
     }
