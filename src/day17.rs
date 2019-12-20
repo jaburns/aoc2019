@@ -123,7 +123,7 @@ impl PathToken {
             PathToken::Turn(_) => 1,
             PathToken::Walk(x) => {
                 if *x >= 10 {
-                    2 
+                    2
                 } else {
                     1
                 }
@@ -247,9 +247,15 @@ fn encode_path(
             }
         };
 
-        if chomp(sub_a, SubRoutineCall::A) { continue; }
-        if chomp(sub_b, SubRoutineCall::B) { continue; }
-        if chomp(sub_c, SubRoutineCall::C) { continue; }
+        if chomp(sub_a, SubRoutineCall::A) {
+            continue;
+        }
+        if chomp(sub_b, SubRoutineCall::B) {
+            continue;
+        }
+        if chomp(sub_c, SubRoutineCall::C) {
+            continue;
+        }
 
         return None;
     }
@@ -305,7 +311,7 @@ fn vacuum_and_report_dust(tape: &[i64], scaffold: &Scaffold, robot_pos: (i32, i3
         join_to_string(&encoded_path.main),
         join_to_string(&encoded_path.sub_a),
         join_to_string(&encoded_path.sub_b),
-        join_to_string(&encoded_path.sub_c)
+        join_to_string(&encoded_path.sub_c),
     ];
 
     let mut inputs = Vec::<i64>::new();
