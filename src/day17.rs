@@ -1,5 +1,7 @@
 use crate::expanse::Expanse;
 use crate::intcode::vm::IntCodeMachine;
+use std::cmp::min;
+use std::string::ToString;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum Direction {
@@ -85,11 +87,65 @@ fn sum_scaffold_alignment_parameters(scaffold: &Scaffold) -> u32 {
     sum as u32
 }
 
-fn get_uncompressed_robot_path(scaffold: &Scaffold, robot_pos: (i32, i32)) -> String {
-    let mut path = String::from("L,");
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+enum PathTurn {
+    Left,
+    Right,
+}
+
+impl ToString for PathTurn {
+    fn to_string(&self) -> String {
+        match self {
+            PathTurn::Left => String::from("L"),
+            PathTurn::Right => String::from("R"),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+enum PathToken {
+    Turn(PathTurn),
+    Walk(u32),
+}
+
+impl ToString for PathToken {
+    fn to_string(&self) -> String {
+        match self {
+            PathToken::Turn(x) => x.to_string(),
+            PathToken::Walk(x) => x.to_string(),
+        }
+    }
+}
+
+impl PathToken {
+    pub fn size(&self) -> u32 {
+        match self {
+            PathToken::Turn(_) => 1,
+            PathToken::Walk(x) => {
+                if *x >= 10 {
+                    2 
+                } else {
+                    1
+                }
+                // 3 digit numbers? YAGNI!
+            }
+        }
+    }
+
+    pub fn path_size(path: &[PathToken]) -> u32 {
+        let tokens_size: u32 = path.iter().map(|x| x.size()).sum();
+        let commas_size = path.len() as u32 - 1;
+        tokens_size + commas_size
+    }
+}
+
+fn get_raw_robot_path(scaffold: &Scaffold, robot_pos: (i32, i32)) -> Vec<PathToken> {
+    let mut path = Vec::<PathToken>::new();
     let mut pos = robot_pos;
     let mut dir = Direction::West;
     let mut walk_count = 0u32;
+
+    path.push(PathToken::Turn(PathTurn::Left));
 
     loop {
         let next_pos = dir.move_point(pos);
@@ -97,25 +153,29 @@ fn get_uncompressed_robot_path(scaffold: &Scaffold, robot_pos: (i32, i32)) -> St
             pos = next_pos;
             walk_count += 1;
         } else {
-            let look = dir.relative_left().move_point(pos);
-            if scaffold.read(look.0, look.1).is_some() {
-                dir = dir.relative_left();
-                path.push_str(walk_count.to_string().as_str());
-                path.push_str(",L,");
-                walk_count = 0;
+            let mut try_dir = |turned: Direction, path_turn: PathTurn| {
+                let look = turned.move_point(pos);
+                if scaffold.read(look.0, look.1).is_some() {
+                    path.push(PathToken::Walk(walk_count));
+                    path.push(PathToken::Turn(path_turn));
+                    walk_count = 0;
+                    Some(turned)
+                } else {
+                    None
+                }
+            };
+
+            if let Some(new_dir) = try_dir(dir.relative_left(), PathTurn::Left) {
+                dir = new_dir;
                 continue;
             }
 
-            let look = dir.relative_right().move_point(pos);
-            if scaffold.read(look.0, look.1).is_some() {
-                dir = dir.relative_right();
-                path.push_str(walk_count.to_string().as_str());
-                path.push_str(",R,");
-                walk_count = 0;
+            if let Some(new_dir) = try_dir(dir.relative_right(), PathTurn::Right) {
+                dir = new_dir;
                 continue;
             }
 
-            path.push_str(walk_count.to_string().as_str());
+            path.push(PathToken::Walk(walk_count));
             break;
         }
     }
@@ -123,16 +183,156 @@ fn get_uncompressed_robot_path(scaffold: &Scaffold, robot_pos: (i32, i32)) -> St
     path
 }
 
-fn vacuum_and_report_dust(tape: &[i64], scaffold: &Scaffold, robot_pos: (i32, i32)) -> u32 {
-    let mut machine = IntCodeMachine::new(tape);
-    machine.poke(0, 2);
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+enum SubRoutineCall {
+    A,
+    B,
+    C,
+}
 
-    let path = get_uncompressed_robot_path(scaffold, robot_pos);
-    println!("{}", path);
+impl ToString for SubRoutineCall {
+    fn to_string(&self) -> String {
+        match self {
+            SubRoutineCall::A => String::from("A"),
+            SubRoutineCall::B => String::from("B"),
+            SubRoutineCall::C => String::from("C"),
+        }
+    }
+}
 
-    // "L,10,L,12,R,6,R,10,L,4,L,4,L,12,L,10,L,12,R,6,R,10,L,4,L,4,L,12,L,10,"
+#[derive(Debug)]
+struct EncodedPath {
+    pub main: Vec<SubRoutineCall>,
+    pub sub_a: Vec<PathToken>,
+    pub sub_b: Vec<PathToken>,
+    pub sub_c: Vec<PathToken>,
+}
 
-    0
+fn join_to_string<T: ToString>(slice: &[T]) -> String {
+    slice
+        .iter()
+        .map(|x| x.to_string())
+        .fold(String::new(), |a, x| {
+            if a.len() > 0 {
+                format!("{},{}", a, x)
+            } else {
+                x
+            }
+        })
+}
+
+fn encode_path(
+    path: &[PathToken],
+    sub_a: &[PathToken],
+    sub_b: &[PathToken],
+    sub_c: &[PathToken],
+) -> Option<EncodedPath> {
+    let mut chomped = Vec::from(path);
+    let mut result = Vec::<SubRoutineCall>::new();
+
+    loop {
+        if chomped.len() == 0 {
+            break;
+        }
+
+        if &chomped[0..sub_a.len()] == sub_a {
+            for _ in 0..sub_a.len() {
+                chomped.remove(0);
+            }
+            result.push(SubRoutineCall::A);
+            continue;
+        }
+
+        if &chomped[0..sub_b.len()] == sub_b {
+            for _ in 0..sub_b.len() {
+                chomped.remove(0);
+            }
+            result.push(SubRoutineCall::B);
+            continue;
+        }
+
+        if &chomped[0..sub_c.len()] == sub_c {
+            for _ in 0..sub_c.len() {
+                chomped.remove(0);
+            }
+            result.push(SubRoutineCall::C);
+            continue;
+        }
+
+        return None;
+    }
+
+    Some(EncodedPath {
+        main: result,
+        sub_a: Vec::from(sub_a),
+        sub_b: Vec::from(sub_b),
+        sub_c: Vec::from(sub_c),
+    })
+}
+
+fn vacuum_and_report_dust(tape: &[i64], scaffold: &Scaffold, robot_pos: (i32, i32)) -> i64 {
+    const MAX_SUBPATH_TOKEN_COUNT: usize = 10;
+
+    let path = get_raw_robot_path(scaffold, robot_pos);
+
+    let mut encoded_path: Option<EncodedPath> = None;
+
+    'outer: for a_len in 1..min(path.len() - 2, MAX_SUBPATH_TOKEN_COUNT) {
+        for b_len in 1..min(path.len() - a_len - 1, MAX_SUBPATH_TOKEN_COUNT) {
+            for b_start in a_len..(path.len() - b_len - 1) {
+                for c_len in 1..min(path.len() - b_len - a_len, MAX_SUBPATH_TOKEN_COUNT) {
+                    for c_start in (b_start + b_len)..(path.len() - c_len) {
+                        let a = &path[0..a_len];
+                        if PathToken::path_size(a) > 20 {
+                            continue;
+                        };
+
+                        let b = &path[b_start..(b_start + b_len)];
+                        if PathToken::path_size(b) > 20 {
+                            continue;
+                        };
+
+                        let c = &path[c_start..(c_start + c_len)];
+                        if PathToken::path_size(c) > 20 {
+                            continue;
+                        };
+
+                        encoded_path = encode_path(&path, a, b, c);
+
+                        if encoded_path.is_some() {
+                            break 'outer;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let encoded_path = encoded_path.unwrap();
+
+    let input_lines = vec![
+        join_to_string(&encoded_path.main),
+        join_to_string(&encoded_path.sub_a),
+        join_to_string(&encoded_path.sub_b),
+        join_to_string(&encoded_path.sub_c)
+    ];
+
+    let mut inputs = Vec::<i64>::new();
+
+    for line in input_lines.iter() {
+        for ch in line.chars() {
+            inputs.push(ch as i64);
+        }
+        inputs.push(10);
+    }
+
+    inputs.push('n' as i64);
+    inputs.push(10);
+
+    let mut poked_tape = Vec::from(tape);
+    poked_tape[0] = 2;
+    let mut result = IntCodeMachine::run_all(&poked_tape, &inputs);
+
+    result.pop().unwrap()
 }
 
 pub fn main() {
@@ -148,8 +348,6 @@ pub fn main() {
         .collect();
 
     let (scaffold, robot_pos) = load_scaffold_and_robot_pos_from_camera_view(&camera_view);
-
-    println!("{}", scaffold.render_to_string(false, "  ", |_| " #"));
 
     let result0 = sum_scaffold_alignment_parameters(&scaffold);
     let result1 = vacuum_and_report_dust(&tape, &scaffold, robot_pos);
