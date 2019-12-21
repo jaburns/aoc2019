@@ -87,11 +87,11 @@ impl PaintBot {
 
     pub fn render_image_to_string(&self) -> String {
         self.grid.render_to_string(true, " ", |color| {
-            if color == &PaintColor::White {
+            String::from(if color == &PaintColor::White {
                 "X"
             } else {
                 " "
-            }
+            })
         })
     }
 }

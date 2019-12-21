@@ -1,3 +1,4 @@
+use std::clone::Clone;
 use std::ops::{Index, IndexMut, Range};
 
 #[derive(Debug)]
@@ -63,6 +64,15 @@ impl<T> IndexMut<i32> for TwoVec<T> {
     }
 }
 
+impl<T: Clone> Clone for TwoVec<T> {
+    fn clone(&self) -> Self {
+        Self {
+            negative: self.negative.clone(),
+            positive: self.positive.clone(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Expanse<T> {
     grid: TwoVec<TwoVec<Option<T>>>,
@@ -124,7 +134,7 @@ impl<T> Expanse<T> {
 
     pub fn render_to_string<F>(&self, y_increases_up: bool, empty: &str, f: F) -> String
     where
-        F: Fn(&T) -> &str,
+        F: Fn(&T) -> String,
     {
         fn inner_fn<T, G, I: Iterator<Item = i32>>(
             this: &Expanse<T>,
@@ -133,16 +143,16 @@ impl<T> Expanse<T> {
             y_range: I,
         ) -> String
         where
-            G: Fn(&T) -> &str,
+            G: Fn(&T) -> String,
         {
             let mut result = String::new();
 
             for y in y_range {
                 for x in this.x_range() {
-                    result.push_str(match this.read(x, y) {
-                        Some(x) => f(x),
-                        None => empty,
-                    });
+                    match this.read(x, y) {
+                        Some(x) => result.push_str(f(x).as_str()),
+                        None => result.push_str(empty),
+                    };
                 }
                 result.push_str("\n");
             }
@@ -154,6 +164,34 @@ impl<T> Expanse<T> {
             inner_fn(self, empty, f, self.y_range().rev())
         } else {
             inner_fn(self, empty, f, self.y_range())
+        }
+    }
+}
+
+impl<T: Clone> Expanse<T> {
+    #[allow(dead_code)]
+    pub fn map<F, U>(&self, f: F) -> Expanse<U>
+    where
+        F: Fn(&T) -> U,
+    {
+        let mut new_expanse = Expanse::<U>::new();
+
+        for x in self.x_range() {
+            for y in self.y_range() {
+                if let Some(cell) = self.read(x, y) {
+                    new_expanse.write(x, y, f(cell));
+                }
+            }
+        }
+
+        new_expanse
+    }
+}
+
+impl<T: Clone> Clone for Expanse<T> {
+    fn clone(&self) -> Self {
+        Self {
+            grid: self.grid.clone(),
         }
     }
 }

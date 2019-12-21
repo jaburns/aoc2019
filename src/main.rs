@@ -10,9 +10,9 @@ mod day14;
 mod day15;
 mod day16;
 mod day17;
-mod day18;
 mod day19;
 mod day2;
+mod day20;
 mod day3;
 mod day4;
 mod day5;
@@ -22,6 +22,10 @@ mod day8;
 mod day9;
 mod expanse;
 mod intcode;
+
+fn say_is_js(day: u32) {
+    println!("\nThis one's in JS. Run 'node src/day{}.js'\n", day);
+}
 
 fn run_from_arg(arg: i32) {
     match arg {
@@ -42,14 +46,15 @@ fn run_from_arg(arg: i32) {
         15 => day15::main(),
         16 => day16::main(),
         17 => day17::main(),
-        18 => day18::main(), // EMPTY
+        18 => say_is_js(18), // INCOMPLETE
         19 => day19::main(),
+        20 => day20::main(), // EMPTY
         _ => {}
     }
 }
 
 fn run_default() {
-    day18::main()
+    day20::main()
 }
 
 fn main() {
