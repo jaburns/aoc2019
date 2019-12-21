@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate glium;
 
+use std::process::Command;
+
 mod day1;
 mod day10;
 mod day11;
@@ -13,6 +15,7 @@ mod day17;
 mod day19;
 mod day2;
 mod day20;
+mod day21;
 mod day3;
 mod day4;
 mod day5;
@@ -23,8 +26,16 @@ mod day9;
 mod expanse;
 mod intcode;
 
-fn say_is_js(day: u32) {
-    println!("\nThis one's in JS. Run 'node src/day{}.js'\n", day);
+fn day18() {
+    let result = String::from_utf8(
+        Command::new("node")
+            .args(&["src/day18.js"])
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap();
+    println!("{}", result);
 }
 
 fn run_from_arg(arg: i32) {
@@ -46,15 +57,16 @@ fn run_from_arg(arg: i32) {
         15 => day15::main(),
         16 => day16::main(),
         17 => day17::main(),
-        18 => say_is_js(18), // INCOMPLETE
+        18 => day18(),
         19 => day19::main(),
-        20 => day20::main(), // EMPTY
+        20 => day20::main(),
+        21 => day21::main(), // EMPTY
         _ => {}
     }
 }
 
 fn run_default() {
-    day20::main()
+    day21::main()
 }
 
 fn main() {

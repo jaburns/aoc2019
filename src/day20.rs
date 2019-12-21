@@ -1,9 +1,24 @@
 use crate::expanse::Expanse;
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum PortalKind {
+    Push,
+    Pop,
+}
+
+impl PortalKind {
+    pub fn other(&self) -> PortalKind {
+        match self {
+            PortalKind::Push => PortalKind::Pop,
+            PortalKind::Pop => PortalKind::Push,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum TileKind {
     Path,
-    Portal(String),
+    Portal(PortalKind, String),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,6 +34,14 @@ fn is_capital_letter(ch: char) -> bool {
 fn load_maze(chars: &Vec<Vec<char>>) -> Expanse<Tile> {
     let mut result = Expanse::new();
 
+    let kind_at = |x: usize, y: usize| -> PortalKind {
+        if x == 2 || y == 2 || x == chars[0].len() - 3 || y == chars.len() - 3 {
+            PortalKind::Pop
+        } else {
+            PortalKind::Push
+        }
+    };
+
     for y in 0..chars.len() {
         for x in 0..chars[y].len() {
             if chars[y][x] != '.' {
@@ -26,13 +49,25 @@ fn load_maze(chars: &Vec<Vec<char>>) -> Expanse<Tile> {
             }
 
             let kind = if is_capital_letter(chars[y][x - 1]) {
-                TileKind::Portal(format!("{}{}", chars[y][x - 2], chars[y][x - 1]))
+                TileKind::Portal(
+                    kind_at(x, y),
+                    format!("{}{}", chars[y][x - 2], chars[y][x - 1]),
+                )
             } else if is_capital_letter(chars[y][x + 1]) {
-                TileKind::Portal(format!("{}{}", chars[y][x + 1], chars[y][x + 2]))
+                TileKind::Portal(
+                    kind_at(x, y),
+                    format!("{}{}", chars[y][x + 1], chars[y][x + 2]),
+                )
             } else if is_capital_letter(chars[y - 1][x]) {
-                TileKind::Portal(format!("{}{}", chars[y - 2][x], chars[y - 1][x]))
+                TileKind::Portal(
+                    kind_at(x, y),
+                    format!("{}{}", chars[y - 2][x], chars[y - 1][x]),
+                )
             } else if is_capital_letter(chars[y + 1][x]) {
-                TileKind::Portal(format!("{}{}", chars[y + 1][x], chars[y + 2][x]))
+                TileKind::Portal(
+                    kind_at(x, y),
+                    format!("{}{}", chars[y + 1][x], chars[y + 2][x]),
+                )
             } else {
                 TileKind::Path
             };
@@ -51,10 +86,14 @@ fn load_maze(chars: &Vec<Vec<char>>) -> Expanse<Tile> {
     result
 }
 
-fn find_portals(maze: &Expanse<Tile>, id: &str) -> Vec<(i32, i32)> {
+fn find_portals(
+    maze: &Expanse<Tile>,
+    id: &str,
+    portal_kind: Option<PortalKind>,
+) -> Vec<(i32, i32)> {
     maze.find_many(|Tile { kind, .. }| {
-        if let TileKind::Portal(x) = kind {
-            x == id
+        if let TileKind::Portal(pk, x) = kind {
+            x == id && (portal_kind.is_none() || portal_kind.unwrap() == *pk)
         } else {
             false
         }
@@ -68,11 +107,21 @@ fn can_walk(maze: &Expanse<Tile>, x: i32, y: i32) -> bool {
     }
 }
 
-fn can_portal(maze: &Expanse<Tile>, x: i32, y: i32) -> Option<(i32, i32)> {
-    if let Some(Tile { kind: TileKind::Portal(id), .. }) = maze.read(x, y) {
-        for &(px, py) in find_portals(maze, id).iter() {
-            if px != x && py != y && maze.read(px, py).unwrap().dist == 0 {
-                return Some((px, py));
+fn can_flat_portal(
+    _maze_proto: &Expanse<Tile>,
+    levels: &mut Vec<Expanse<Tile>>,
+    x: i32,
+    y: i32,
+    _z: usize,
+) -> Option<(i32, i32, usize)> {
+    if let Some(Tile {
+        kind: TileKind::Portal(_, id),
+        ..
+    }) = levels[0].read(x, y)
+    {
+        for &(px, py) in find_portals(&levels[0], id, None).iter() {
+            if px != x && py != y && levels[0].read(px, py).unwrap().dist == 0 {
+                return Some((px, py, 0));
             }
         }
         None
@@ -81,44 +130,100 @@ fn can_portal(maze: &Expanse<Tile>, x: i32, y: i32) -> Option<(i32, i32)> {
     }
 }
 
-fn solve_flat_maze(maze: &Expanse<Tile>) -> u32 {
-    let mut maze = maze.clone();
+fn can_recursive_portal(
+    maze_proto: &Expanse<Tile>,
+    levels: &mut Vec<Expanse<Tile>>,
+    x: i32,
+    y: i32,
+    z: usize,
+) -> Option<(i32, i32, usize)> {
+    let portal_kind: PortalKind;
+    let portal_id: String;
 
-    let (x, y) = find_portals(&maze, "AA")[0];
-    
-    let start_tile = maze.at(x, y).unwrap();
-    start_tile.kind = TileKind::Path;
+    if let Some(Tile {
+        kind: TileKind::Portal(pk, id),
+        ..
+    }) = levels[z].read(x, y)
+    {
+        portal_kind = *pk;
+        portal_id = id.clone();
+    } else {
+        return None;
+    }
 
-    let mut frontier = vec![ (x, y) ];
+    if z == 0 && portal_kind == PortalKind::Pop {
+        return None;
+    }
+
+    let z1 = match portal_kind {
+        PortalKind::Pop => z - 1,
+        PortalKind::Push => z + 1,
+    };
+
+    if z1 >= levels.len() {
+        levels.push(maze_proto.clone());
+    }
+
+    for &(px, py) in find_portals(&levels[z1], &portal_id, Some(portal_kind.other())).iter() {
+        if px != x && py != y && levels[z1].read(px, py).unwrap().dist == 0 {
+            return Some((px, py, z1));
+        }
+    }
+
+    None
+}
+
+fn solve_maze(maze: &Expanse<Tile>, recursive: bool) -> u32 {
+    let mut levels = vec![maze.clone()];
+
+    let (x, y) = find_portals(&levels[0], "AA", None)[0];
+    let (zx, zy) = find_portals(&levels[0], "ZZ", None)[0];
+
+    let mut frontier = vec![(x, y, 0)];
     let mut cur_dist = 1;
+
+    let portal_fn = if recursive {
+        can_recursive_portal
+    } else {
+        can_flat_portal
+    };
 
     while frontier.len() > 0 {
         for i in 0..frontier.len() {
-            let (x, y) = frontier[i];
-            maze.at(x, y).unwrap().dist = cur_dist;
+            let (x, y, z) = frontier[i];
+            levels[z].at(x, y).unwrap().dist = cur_dist;
+
+            if x == zx && y == zy && z == 0 {
+                return cur_dist - 1;
+            }
         }
 
-        let mut new_frontier = Vec::<(i32, i32)>::new();
+        let mut new_frontier = Vec::<(i32, i32, usize)>::new();
 
         for i in 0..frontier.len() {
-            let (x, y) = frontier[i];
-            if can_walk(&maze, x + 1, y) { new_frontier.push((x + 1, y)); }
-            if can_walk(&maze, x - 1, y) { new_frontier.push((x - 1, y)); }
-            if can_walk(&maze, x, y + 1) { new_frontier.push((x, y + 1)); }
-            if can_walk(&maze, x, y - 1) { new_frontier.push((x, y - 1)); }
-            if let Some(new_pos) = can_portal(&maze, x, y) { new_frontier.push(new_pos); }
+            let (x, y, z) = frontier[i];
+            if can_walk(&levels[z], x + 1, y) {
+                new_frontier.push((x + 1, y, z));
+            }
+            if can_walk(&levels[z], x - 1, y) {
+                new_frontier.push((x - 1, y, z));
+            }
+            if can_walk(&levels[z], x, y + 1) {
+                new_frontier.push((x, y + 1, z));
+            }
+            if can_walk(&levels[z], x, y - 1) {
+                new_frontier.push((x, y - 1, z));
+            }
+            if let Some(new_pos) = portal_fn(maze, &mut levels, x, y, z) {
+                new_frontier.push(new_pos);
+            }
         }
 
         cur_dist += 1;
         frontier = new_frontier;
     }
 
-    let (zx, zy) = find_portals(&maze, "ZZ")[0];
-    maze.read(zx, zy).unwrap().dist - 1
-}
-
-fn solve_recursive_maze(maze: &Expanse<Tile>) -> u32 {
-    0
+    panic!()
 }
 
 pub fn main() {
@@ -129,8 +234,9 @@ pub fn main() {
         .collect();
 
     let maze = load_maze(&map_chars);
-    let result0 = solve_flat_maze(&maze);
-    let result1 = solve_recursive_maze(&maze);
+
+    let result0 = solve_maze(&maze, false);
+    let result1 = solve_maze(&maze, true);
 
     println!("{} {}", result0, result1);
 }
