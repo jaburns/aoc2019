@@ -93,12 +93,42 @@ impl<T> Expanse<T> {
         }
     }
 
+    pub fn at(&mut self, x: i32, y: i32) -> Option<&mut T> {
+        if self.grid.index_range().contains(&x) && self.grid[x].index_range().contains(&y) {
+            self.grid[x][y].as_mut()
+        } else {
+            None
+        }
+    }
+
     pub fn write(&mut self, x: i32, y: i32, item: T) {
         self.grid.expand_to_contain(x, || TwoVec::new());
         for i in self.grid.index_range() {
             self.grid[i].expand_to_contain(y, || None);
         }
         self.grid[x][y] = Some(item);
+    }
+
+    pub fn find_many<F>(&self, f: F) -> Vec<(i32, i32)>
+    where
+        F: Fn(&T) -> bool,
+    {
+        let mut result = Vec::<(i32, i32)>::new();
+
+        for x in self.grid.index_range() {
+            for y in self.grid[x].index_range() {
+                match self.read(x, y) {
+                    Some(z) => {
+                        if f(z) {
+                            result.push((x, y));
+                        }
+                    }
+                    None => (),
+                }
+            }
+        }
+
+        result
     }
 
     pub fn find<F>(&self, f: F) -> Option<(i32, i32)>
