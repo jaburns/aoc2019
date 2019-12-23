@@ -1,106 +1,115 @@
-use std::collections::HashMap;
+use std::collections::{HashMap,VecDeque};
+use std::cmp::min;
 
-type RecipeBook = HashMap<String, (u32, Vec<(String, u32)>)>;
-type ChemicalStore = HashMap<String, u32>;
-
-#[derive(Debug)]
-struct Reactor {
-    recipes: RecipeBook,
-    store: ChemicalStore,
+#[derive(Eq,PartialEq,Debug,Clone)]
+struct Recipe {
+    pub output_count: u64,
+    pub ingredients: Vec<(String, u64)>,
 }
 
-impl Reactor {
-    pub fn new() -> Reactor {
-        Reactor {
-            recipes: HashMap::new(),
-            store: HashMap::new(),
-        }
-    }
+type RecipeBook = HashMap<String, Recipe>;
+type ChemStore = HashMap<String, u64>;
 
-    fn parse_ingredient(txt: &str) -> (String, u32) {
+fn load_recipe_book_from_strings(txts: &[String]) -> RecipeBook {
+    let mut result = RecipeBook::new();
+
+    fn parse_ingredient(txt: &str) -> (String, u64) {
         let left_right: Vec<&str> = txt.split(" ").collect();
-        (String::from(left_right[1]), left_right[0].parse().unwrap())
+        (String::from(left_right[1]), left_right[0].parse::<u64>().unwrap())
     }
 
-    pub fn load_recipe_from_string(&mut self, txt: &str) {
+    for txt in txts {
         let left_right: Vec<&str> = txt.split("=>").collect();
         let input_list: Vec<&str> = left_right[0].split(",").map(|x| x.trim()).collect();
         let output = left_right[1].trim();
 
-        let parsed_output = Self::parse_ingredient(output);
+        let parsed_output = parse_ingredient(output);
 
         let ingredients = input_list
             .iter()
-            .map(|&x| Self::parse_ingredient(x))
+            .map(|&x| parse_ingredient(x))
             .collect();
 
-        self.recipes
-            .insert(parsed_output.0, (parsed_output.1, ingredients));
+        result.insert(parsed_output.0, Recipe {
+            output_count: parsed_output.1,
+            ingredients: ingredients,
+        });
     }
 
-    fn store_chemcial(store: &mut ChemicalStore, chemical: &str, count: u32) {
-        if !store.contains_key(chemical) {
-            store.insert(String::from(chemical), 0);
-        }
-        *store.get_mut(chemical).unwrap() += count;
-    }
+    result
+}
 
-    fn count_stored_chemical(store: &ChemicalStore, chemical: &str) -> u32 {
-        if !store.contains_key(chemical) {
-            0
-        } else {
-            store[chemical]
-        }
-    }
+fn produce_fuel(out_quantity: u64, recipes: &RecipeBook, chem_store: &mut ChemStore) -> u64 {
+    let mut needed = VecDeque::new();
+    needed.push_back(("FUEL", out_quantity));
+    let mut ore_used = 0;
 
-    fn consume_chemical(store: &mut ChemicalStore, chemical: &str, count: u32) {
-        if !store.contains_key(chemical) || store[chemical] < count {
-            panic!();
-        }
-        *store.get_mut(chemical).unwrap() -= count;
-    }
+    loop {
+        match needed.pop_front() {
+            Some(("ORE", mut amount)) => {
+                let stored_chem = chem_store.entry(String::from("ORE")).or_insert(0);
+                let store_used = min(amount, *stored_chem);
+                *stored_chem -= store_used;
+                amount -= store_used;
 
-    fn produce_chemical(
-        recipes: &RecipeBook,
-        store: &mut ChemicalStore,
-        chemical: &str,
-        count: u32,
-    ) -> u32 {
-        if chemical == "ORE" {
-            Self::store_chemcial(store, "ORE", count);
-            return count;
-        }
+                ore_used += amount;
+            },
+            Some((chem, mut amount)) => {
+                let stored_chem = chem_store.entry(String::from(chem)).or_insert(0);
+                let store_used = min(amount, *stored_chem);
+                *stored_chem -= store_used;
+                amount -= store_used;
 
-        let mut ore_used = 0u32;
-        let (recipe_out_count, ingredients) = &recipes[chemical];
+                if amount > 0 {
+                    let recipe = recipes.get(chem).unwrap();
+                    let multiplier = (amount - 1) / recipe.output_count + 1;
 
-        while Self::count_stored_chemical(store, chemical) < count {
-            for (in_chem, in_count) in ingredients {
-                ore_used += Self::produce_chemical(recipes, store, &in_chem, *in_count);
-            }
-            Self::store_chemcial(store, chemical, *recipe_out_count);
-        }
+                    *stored_chem = recipe.output_count * multiplier - amount;
 
-        Self::consume_chemical(store, chemical, count);
-
-        ore_used
-    }
-
-    pub fn get_cost_in_ore(&mut self, chemical: &str, count: u32) -> u32 {
-        self.store = HashMap::new();
-        Self::produce_chemical(&self.recipes, &mut self.store, chemical, count)
+                    for (input_name, input_count) in &recipe.ingredients {
+                        needed.push_back((&input_name, input_count * multiplier));
+                    }
+                }
+            },
+            None => return ore_used,
+        };
     }
 }
 
 pub fn main() {
-    let mut reactor = Reactor::new();
-
-    std::fs::read_to_string("data/day14.txt")
+    let recipe_lines: Vec<String> = std::fs::read_to_string("data/day14.txt")
         .unwrap()
         .lines()
-        .for_each(|x| reactor.load_recipe_from_string(&x));
+        .map(String::from)
+        .collect();
 
-    let result0 = reactor.get_cost_in_ore("FUEL", 1);
+    let recipes = load_recipe_book_from_strings(&recipe_lines);
+    let ore_per_fuel = produce_fuel(1, &recipes, &mut ChemStore::new());
 
-    println!("{}", result0);
+    let base_fuel = 1_000_000_000_000 / ore_per_fuel;
+    let mut chem_store = ChemStore::new();
+    let mut ore_used = produce_fuel(base_fuel, &recipes, &mut chem_store);
+    let mut fuel_produced = base_fuel;
+    let mut chunk_size = 32768_u64;
+
+    while chunk_size > 0 {
+        let mut sim_store = chem_store.clone();
+        let mut sim_ore_used = ore_used;
+        let mut sim_fuel_produced = 0;
+
+        loop {
+            sim_ore_used += produce_fuel(chunk_size, &recipes, &mut sim_store);
+            if sim_ore_used > 1_000_000_000_000 { break; }
+            sim_fuel_produced += chunk_size;
+        }
+
+        fuel_produced += sim_fuel_produced;
+        ore_used += produce_fuel(sim_fuel_produced, &recipes, &mut sim_store);
+        chunk_size /= 2;
+    }
+
+    let result0 = ore_per_fuel;
+    let result1 = fuel_produced;
+
+    println!("{} {}", result0, result1);
 }
