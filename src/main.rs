@@ -70,7 +70,7 @@ fn run_from_arg(arg: i32) {
 }
 
 fn run_default() {
-    day22::main()
+    day23::main()
 }
 
 fn main() {

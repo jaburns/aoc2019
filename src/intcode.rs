@@ -21,6 +21,7 @@ pub mod vm {
         Halted,
     }
 
+    #[derive(Debug, Clone)]
     pub struct IntCodeMachine {
         tape: Vec<i64>,
         ip: usize,
