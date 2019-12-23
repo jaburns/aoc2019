@@ -1,4 +1,4 @@
-use crate::intcode::vm::{IntCodeMachine,RunResult};
+use crate::intcode::vm::{IntCodeMachine, RunResult};
 use std::collections::VecDeque;
 
 pub fn run_network(tape: &[i64], mode2: bool) -> i64 {
@@ -33,7 +33,7 @@ pub fn run_network(tape: &[i64], mode2: bool) -> i64 {
                         machine.provide_input(-1);
                         reading_from_empty[i] = true;
                     }
-                },
+                }
                 RunResult::ProvidingOutput(addr) => {
                     let x = machine.run_and_get_output().unwrap();
                     let y = machine.run_and_get_output().unwrap();
