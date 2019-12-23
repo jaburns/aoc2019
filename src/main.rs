@@ -16,6 +16,7 @@ mod day19;
 mod day2;
 mod day20;
 mod day21;
+mod day22;
 mod day3;
 mod day4;
 mod day5;
@@ -53,20 +54,21 @@ fn run_from_arg(arg: i32) {
         11 => day11::main(),
         12 => day12::main(),
         13 => day13::main(),
-        14 => day14::main(), // INCOMPLETE
+        14 => day14::main(),
         15 => day15::main(),
         16 => day16::main(),
         17 => day17::main(),
         18 => day18(),
         19 => day19::main(),
         20 => day20::main(),
-        21 => day21::main(), // EMPTY
+        21 => day21::main(),
+        22 => day22::main(),
         _ => {}
     }
 }
 
 fn run_default() {
-    day21::main()
+    day22::main()
 }
 
 fn main() {
