@@ -36,6 +36,7 @@ pub fn main() {
         .map(|x| x.trim().parse().unwrap())
         .collect();
 
+    #[rustfmt::skip]
     let result0 = run_program_or_print_failure(&tape, &[
         "NOT A J",
         "NOT B T",
@@ -43,9 +44,10 @@ pub fn main() {
         "NOT C T",
         "OR T J",
         "AND D J",
-        "WALK"
+        "WALK",
     ]);
 
+    #[rustfmt::skip]
     let result1 = run_program_or_print_failure(&tape, &[
         "NOT A J",
         "NOT B T",
@@ -57,7 +59,7 @@ pub fn main() {
         "NOT T T",
         "OR H T",
         "AND T J",
-        "RUN"
+        "RUN",
     ]);
 
     println!("{} {}", result0, result1);

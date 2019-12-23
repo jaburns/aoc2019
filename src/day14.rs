@@ -1,7 +1,7 @@
-use std::collections::{HashMap,VecDeque};
 use std::cmp::min;
+use std::collections::{HashMap, VecDeque};
 
-#[derive(Eq,PartialEq,Debug,Clone)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 struct Recipe {
     pub output_count: u64,
     pub ingredients: Vec<(String, u64)>,
@@ -15,7 +15,10 @@ fn load_recipe_book_from_strings(txts: &[String]) -> RecipeBook {
 
     fn parse_ingredient(txt: &str) -> (String, u64) {
         let left_right: Vec<&str> = txt.split(" ").collect();
-        (String::from(left_right[1]), left_right[0].parse::<u64>().unwrap())
+        (
+            String::from(left_right[1]),
+            left_right[0].parse::<u64>().unwrap(),
+        )
     }
 
     for txt in txts {
@@ -25,15 +28,15 @@ fn load_recipe_book_from_strings(txts: &[String]) -> RecipeBook {
 
         let parsed_output = parse_ingredient(output);
 
-        let ingredients = input_list
-            .iter()
-            .map(|&x| parse_ingredient(x))
-            .collect();
+        let ingredients = input_list.iter().map(|&x| parse_ingredient(x)).collect();
 
-        result.insert(parsed_output.0, Recipe {
-            output_count: parsed_output.1,
-            ingredients: ingredients,
-        });
+        result.insert(
+            parsed_output.0,
+            Recipe {
+                output_count: parsed_output.1,
+                ingredients: ingredients,
+            },
+        );
     }
 
     result
@@ -53,7 +56,7 @@ fn produce_fuel(out_quantity: u64, recipes: &RecipeBook, chem_store: &mut ChemSt
                 amount -= store_used;
 
                 ore_used += amount;
-            },
+            }
             Some((chem, mut amount)) => {
                 let stored_chem = chem_store.entry(String::from(chem)).or_insert(0);
                 let store_used = min(amount, *stored_chem);
@@ -70,7 +73,7 @@ fn produce_fuel(out_quantity: u64, recipes: &RecipeBook, chem_store: &mut ChemSt
                         needed.push_back((&input_name, input_count * multiplier));
                     }
                 }
-            },
+            }
             None => return ore_used,
         };
     }
@@ -99,7 +102,9 @@ pub fn main() {
 
         loop {
             sim_ore_used += produce_fuel(chunk_size, &recipes, &mut sim_store);
-            if sim_ore_used > 1_000_000_000_000 { break; }
+            if sim_ore_used > 1_000_000_000_000 {
+                break;
+            }
             sim_fuel_produced += chunk_size;
         }
 

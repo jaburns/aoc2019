@@ -1,8 +1,8 @@
-use num::BigInt;
 use modinverse::modinverse;
 use num::cast::ToPrimitive;
+use num::BigInt;
 
-#[derive(PartialEq,Eq,Clone,Copy,Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 enum Technique {
     Reverse,
     Cut(i64),
@@ -15,16 +15,14 @@ fn parse_technique_line(line: &str) -> Technique {
 
     if line == "deal into new stack" {
         Technique::Reverse
-    }
-    else if line.starts_with("cut") {
+    } else if line.starts_with("cut") {
         Technique::Cut(line[CUT_OFFSET..].parse::<i64>().unwrap())
-    }
-    else {
+    } else {
         Technique::Deal(line[DEAL_OFFSET..].parse::<i64>().unwrap())
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 struct ModularTransformation {
     pub a: BigInt,
     pub b: BigInt,
@@ -33,11 +31,13 @@ struct ModularTransformation {
 
 impl ModularTransformation {
     pub fn then(&self, other: &ModularTransformation) -> ModularTransformation {
-        if self.m != other.m { panic!("Cannot combine operations of different moduli"); }
+        if self.m != other.m {
+            panic!("Cannot combine operations of different moduli");
+        }
         ModularTransformation {
             a: (&self.a * &other.a) % &self.m,
             b: (&other.a * &self.b + &other.b) % &self.m,
-            m: self.m.clone()
+            m: self.m.clone(),
         }
     }
 
@@ -49,21 +49,15 @@ impl ModularTransformation {
         ModularTransformation {
             a: BigInt::from(1),
             b: BigInt::from(0),
-            m: m
+            m: m,
         }
     }
 }
 
 fn get_reverse_transformation(num_cards: u64, technique: &Technique) -> ModularTransformation {
     let (a, b) = match technique {
-        Technique::Reverse => (
-            BigInt::from(-1),
-            BigInt::from(num_cards - 1),
-        ),
-        Technique::Cut(offset) => (
-            BigInt::from(1),
-            BigInt::from(num_cards as i64 + *offset),
-        ),
+        Technique::Reverse => (BigInt::from(-1), BigInt::from(num_cards - 1)),
+        Technique::Cut(offset) => (BigInt::from(1), BigInt::from(num_cards as i64 + *offset)),
         Technique::Deal(offset) => (
             BigInt::from(modinverse(*offset as i64, num_cards as i64).unwrap()),
             BigInt::from(0),
@@ -113,7 +107,12 @@ fn get_bits(num: u64) -> u32 {
     bit_count
 }
 
-fn find_card_after_many_runs(num_cards: u64, num_runs: u64, card_index: u64, program: &[Technique]) -> u64 {
+fn find_card_after_many_runs(
+    num_cards: u64,
+    num_runs: u64,
+    card_index: u64,
+    program: &[Technique],
+) -> u64 {
     let mut transform = compile_reverse_program(num_cards, &program);
     let mut mask = 1u64;
     let mut result = BigInt::from(card_index);
