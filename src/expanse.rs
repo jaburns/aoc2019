@@ -1,7 +1,7 @@
 use std::clone::Clone;
 use std::ops::{Index, IndexMut, Range};
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct TwoVec<T> {
     negative: Vec<T>,
     positive: Vec<T>,
@@ -64,7 +64,7 @@ impl<T> IndexMut<i32> for TwoVec<T> {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Expanse<T> {
     grid: TwoVec<TwoVec<Option<T>>>,
 }

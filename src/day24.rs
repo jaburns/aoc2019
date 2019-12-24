@@ -1,7 +1,7 @@
-use crate::expanse::{TwoVec,Expanse};
+use crate::expanse::{Expanse, TwoVec};
 use std::collections::HashSet;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 struct World {
     width: i32,
     height: i32,
@@ -28,10 +28,26 @@ impl World {
     }
 
     fn neighbors_at(&self, x: i32, y: i32) -> i32 {
-        let a = if self.grid.read(x + 1, y).is_some() { 1 } else { 0 };
-        let b = if self.grid.read(x - 1, y).is_some() { 1 } else { 0 };
-        let c = if self.grid.read(x, y + 1).is_some() { 1 } else { 0 };
-        let d = if self.grid.read(x, y - 1).is_some() { 1 } else { 0 };
+        let a = if self.grid.read(x + 1, y).is_some() {
+            1
+        } else {
+            0
+        };
+        let b = if self.grid.read(x - 1, y).is_some() {
+            1
+        } else {
+            0
+        };
+        let c = if self.grid.read(x, y + 1).is_some() {
+            1
+        } else {
+            0
+        };
+        let d = if self.grid.read(x, y - 1).is_some() {
+            1
+        } else {
+            0
+        };
 
         a + b + c + d
     }
@@ -47,8 +63,7 @@ impl World {
                     if neighbs != 1 {
                         result.grid.erase(x, y);
                     }
-                }
-                else if neighbs == 1 || neighbs == 2 {
+                } else if neighbs == 1 || neighbs == 2 {
                     result.grid.write(x, y, ());
                 }
             }
@@ -75,7 +90,9 @@ impl World {
 
     #[allow(dead_code)]
     fn draw(&self) {
-        let out = self.grid.render_to_string(false, ".", |_| String::from("#"));
+        let out = self
+            .grid
+            .render_to_string(false, ".", |_| String::from("#"));
         println!("{}\n", out);
     }
 
@@ -97,7 +114,7 @@ impl World {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 struct RecursiveWorld {
     grids: TwoVec<Expanse<()>>,
 }
@@ -119,9 +136,7 @@ impl RecursiveWorld {
         vec.expand_to_contain(1, Expanse::<()>::new);
         vec[0] = grid;
 
-        Self {
-            grids: vec,
-        }
+        Self { grids: vec }
     }
 
     fn ensure_enough_layers(&mut self) {
@@ -148,8 +163,7 @@ impl RecursiveWorld {
                 (0, 3, i + 1),
                 (0, 4, i + 1),
             ]
-        }
-        else if x == 3 && y == 2 {
+        } else if x == 3 && y == 2 {
             vec![
                 (4, 2, i),
                 (3, 1, i),
@@ -160,8 +174,7 @@ impl RecursiveWorld {
                 (4, 3, i + 1),
                 (4, 4, i + 1),
             ]
-        }
-        else if x == 2 && y == 1 {
+        } else if x == 2 && y == 1 {
             vec![
                 (2, 0, i),
                 (1, 1, i),
@@ -172,8 +185,7 @@ impl RecursiveWorld {
                 (3, 0, i + 1),
                 (4, 0, i + 1),
             ]
-        }
-        else if x == 2 && y == 3 {
+        } else if x == 2 && y == 3 {
             vec![
                 (2, 4, i),
                 (1, 3, i),
@@ -184,8 +196,7 @@ impl RecursiveWorld {
                 (3, 4, i + 1),
                 (4, 4, i + 1),
             ]
-        }
-        else {
+        } else {
             let l = if x == 0 { (1, 2, i - 1) } else { (x - 1, y, i) };
             let r = if x == 4 { (3, 2, i - 1) } else { (x + 1, y, i) };
             let u = if y == 0 { (2, 1, i - 1) } else { (x, y - 1, i) };
@@ -196,7 +207,11 @@ impl RecursiveWorld {
 
         checks.iter().fold(0, |a, (x, y, i)| {
             if self.grids.index_range().contains(i) {
-                a + if self.grids[*i].read(*x, *y).is_some() { 1 } else { 0 }
+                a + if self.grids[*i].read(*x, *y).is_some() {
+                    1
+                } else {
+                    0
+                }
             } else {
                 a
             }
@@ -220,8 +235,7 @@ impl RecursiveWorld {
                         if neighbors != 1 {
                             result.grids[i].erase(x, y);
                         }
-                    }
-                    else if neighbors == 1 || neighbors == 2 {
+                    } else if neighbors == 1 || neighbors == 2 {
                         result.grids[i].write(x, y, ());
                     }
                 }
@@ -265,7 +279,6 @@ impl RecursiveWorld {
         world.count_bugs()
     }
 }
-
 
 pub fn main() {
     let input: Vec<Vec<char>> = std::fs::read_to_string("data/day24.txt")
