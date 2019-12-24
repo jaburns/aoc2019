@@ -1,8 +1,8 @@
 use std::clone::Clone;
 use std::ops::{Index, IndexMut, Range};
 
-#[derive(Debug)]
-struct TwoVec<T> {
+#[derive(Debug,Clone)]
+pub struct TwoVec<T> {
     negative: Vec<T>,
     positive: Vec<T>,
 }
@@ -64,16 +64,7 @@ impl<T> IndexMut<i32> for TwoVec<T> {
     }
 }
 
-impl<T: Clone> Clone for TwoVec<T> {
-    fn clone(&self) -> Self {
-        Self {
-            negative: self.negative.clone(),
-            positive: self.positive.clone(),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Expanse<T> {
     grid: TwoVec<TwoVec<Option<T>>>,
 }
@@ -107,6 +98,23 @@ impl<T> Expanse<T> {
             self.grid[i].expand_to_contain(y, || None);
         }
         self.grid[x][y] = Some(item);
+    }
+
+    pub fn empty(&self) -> bool {
+        for x in self.x_range() {
+            for y in self.y_range() {
+                if self.read(x, y).is_some() {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    pub fn erase(&mut self, x: i32, y: i32) {
+        if self.at(x, y).is_some() {
+            self.grid[x][y] = None;
+        }
     }
 
     pub fn find_many<F>(&self, f: F) -> Vec<(i32, i32)>
@@ -215,13 +223,5 @@ impl<T: Clone> Expanse<T> {
         }
 
         new_expanse
-    }
-}
-
-impl<T: Clone> Clone for Expanse<T> {
-    fn clone(&self) -> Self {
-        Self {
-            grid: self.grid.clone(),
-        }
     }
 }
