@@ -12,19 +12,19 @@ const WINDOW_SCALE: u32 = 20;
 fn tile_to_texel(tile: Tile) -> (u8, u8, u8, u8) {
     fn from_hex(color: u32) -> (u8, u8, u8, u8) {
         (
-            ((color & 0xff0000) >> 16) as u8,
-            ((color & 0xff00) >> 8) as u8,
+            ((color & 0xff_00_00) >> 16) as u8,
+            ((color & 0xff_00) >> 8) as u8,
             (color & 0xff) as u8,
             0xff,
         )
     }
 
     match tile {
-        Tile::Empty => from_hex(0x355c7d),
-        Tile::Wall => from_hex(0x6c5b7b),
-        Tile::Block => from_hex(0xc06c84),
-        Tile::Paddle => from_hex(0xffffff),
-        Tile::Ball => from_hex(0xffffff),
+        Tile::Empty => from_hex(0x35_5c_7d),
+        Tile::Wall => from_hex(0x6c_5b_7b),
+        Tile::Block => from_hex(0xc0_6c_84),
+        Tile::Paddle => from_hex(0xff_ff_ff),
+        Tile::Ball => from_hex(0xff_ff_ff),
     }
 }
 

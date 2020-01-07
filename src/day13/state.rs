@@ -25,12 +25,13 @@ where
 
     while x >= vec.len() {
         let mut new_column = Vec::<T>::with_capacity(y + 1);
-        for _ in 0..(y + 1) {
+        for _ in 0..=y {
             new_column.push(fill());
         }
         vec.push(new_column);
     }
 
+    #[allow(clippy::needless_range_loop)] 
     for i in 0..original_width {
         while y >= vec[i].len() {
             vec[i].push(fill());

@@ -23,7 +23,7 @@ pub fn run(game_tape: &[i64], tick_tx: Sender<()>, shared_state: Arc<Mutex<Game>
                     machine.provide_input(game.get_best_joystick_dir());
                 }
 
-                if let Err(_) = tick_tx.send(()) {
+                if tick_tx.send(()).is_err() {
                     break;
                 }
 
